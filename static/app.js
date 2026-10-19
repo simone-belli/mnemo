@@ -490,6 +490,7 @@
     $('quiz-q').textContent = item.question;
     $('quiz-result').textContent = '';
     $('quiz-next').hidden = true;
+    $('quiz-idk').hidden = false;
     const opts = $('quiz-options');
     opts.textContent = '';
     $('quiz-free').hidden = !!item.options;
@@ -508,20 +509,21 @@
   }
 
   let nextItem = null;
-  async function answer(value, btn) {
+  async function answer(value, btn, dontKnow = false) {
     if (!quizItem) return;
     const item = quizItem;
     quizItem = null;
     for (const b of $('quiz-options').querySelectorAll('button')) b.disabled = true;
     status('Grading…', { timer: true });
     try {
-      const r = await api('/api/quiz/answer', { item_id: item.item_id, answer: value });
+      const r = await api('/api/quiz/answer', { item_id: item.item_id, answer: value, dont_know: dontKnow });
       status('');
+      $('quiz-idk').hidden = true;
       if (btn) btn.classList.add(r.score >= 1 ? 'right' : 'wrong');
       if (item.options) {
         for (const b of $('quiz-options').querySelectorAll('button')) if (b.textContent === r.correct) b.classList.add('right');
       }
-      $('quiz-result').textContent = r.score >= 1 ? 'Right.' : item.options ? r.rationale : `${Math.round(r.score * 100)}%: ${r.rationale}`;
+      $('quiz-result').textContent = r.score >= 1 ? 'Right.' : (item.options || dontKnow) ? r.rationale : `${Math.round(r.score * 100)}%: ${r.rationale}`;
       appendDebug('quiz answer', r.deltas);
       nextItem = r.next;
       if (nextItem) $('quiz-next').hidden = false;
@@ -529,10 +531,12 @@
       if (nextItem) $('quiz-bar').style.width = `${Math.min(100, (100 * nextItem.progress.answered) / nextItem.progress.target)}%`;
     } catch (e) {
       quizItem = item;
+      for (const b of $('quiz-options').querySelectorAll('button')) b.disabled = false;
       status('Could not grade: ' + e.message, { error: true });
     }
   }
   $('quiz-free').addEventListener('submit', (e) => { e.preventDefault(); answer($('quiz-text').value); });
+  $('quiz-idk').addEventListener('click', () => answer('', null, true));
   $('quiz-next').addEventListener('click', () => { if (nextItem) showItem(nextItem); });
 
   function finishOnboarding() {

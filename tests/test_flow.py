@@ -152,6 +152,20 @@ def test_quiz_flow(svc, client):
     assert r["score"] == 1.0 and r["correct"] == model_answer
 
 
+def test_quiz_dont_know_scores_zero_without_grading(svc, client):
+    item = client.get("/api/quiz/next").json()
+    right = item["options"][int(correct_option(svc, item["item_id"]))]
+    grades = len(svc.llm.calls)
+    r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "dont_know": True}).json()
+    assert r["score"] == 0.0 and r["correct"] == right and right in r["rationale"]
+    assert r["deltas"][0]["d_beta"] > 0
+    assert not any(c["task"] == "grade" for c in svc.llm.calls[grades:])
+    free = client.post("/api/quiz/answer", json={"item_id": r["next"]["item_id"], "answer": "0"}).json()["next"]
+    assert free["options"] is None                                    # every third item is free text
+    r = client.post("/api/quiz/answer", json={"item_id": free["item_id"], "dont_know": True}).json()
+    assert r["score"] == 0.0 and r["correct"] == correct_option(svc, free["item_id"])
+
+
 def test_offline_bank_covers_the_first_quiz_level(svc):
     with svc.db() as conn:
         assert {n["name"] for n in db.all_nodes(conn) if n["depth"] == 1} <= set(QUIZ_BANK)
@@ -190,7 +204,8 @@ def test_map_rebuilds_from_interactions(svc, client):
     r2 = recall(client, "Brunelleschi's perspective experiment")
     client.post("/api/feedback", json={"interaction_id": r2["interaction_id"], "signal": "lost_me", "note": "vanishing point"})
     item = client.get("/api/quiz/next").json()
-    client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": "0"})
+    r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": "0"}).json()
+    client.post("/api/quiz/answer", json={"item_id": r["next"]["item_id"], "dont_know": True})
 
     with svc.db() as conn:
         live = {k: (round(a, 6), round(b, 6), ts) for k, (a, b, ts) in db.get_cells(conn).items()}

@@ -83,6 +83,19 @@ def test_first_run_onboarding_then_quiz(page, svc):
     assert page.is_hidden("#onboarding")
 
 
+def test_quiz_dont_know_reveals_the_answer(page):
+    page.wait_for_selector("#onboarding:not([hidden])")
+    page.click("#rate-skip")
+    page.wait_for_selector("#quiz-options button")
+    page.click("#quiz-idk")
+    page.wait_for_selector("#quiz-next:not([hidden])")
+    assert "The answer is" in page.text_content("#quiz-result")
+    assert page.locator("#quiz-options button.right").count() == 1
+    assert page.is_hidden("#quiz-idk")
+    page.click("#quiz-next")
+    assert page.is_visible("#quiz-idk")
+
+
 def test_recall_renders_and_highlights(page):
     page.wait_for_selector("#onboarding:not([hidden])")
     page.click("#rate-skip")

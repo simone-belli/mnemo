@@ -150,17 +150,25 @@ def grade(conn, settings: Settings, llm, item_id: int, answer: str) -> tuple[flo
     return min(1.0, max(0.0, float(out["score"]))), out["rationale"], r["answer"]
 
 
-def answer(conn, settings: Settings, llm, item_id: int, user_answer: str, now: datetime) -> dict:
+def answer(conn, settings: Settings, llm, item_id: int, user_answer: str, now: datetime,
+           dont_know: bool = False) -> dict:
+    """Grade an answer and update the map. "I don't know" scores 0 like a wrong answer, without
+    asking the model."""
     r = conn.execute("SELECT * FROM quiz_items WHERE id=?", (item_id,)).fetchone()
     if r is None:
         raise KeyError(item_id)
     if r["score"] is not None:
         raise ValueError("already answered")
-    score, rationale, correct = grade(conn, settings, llm, item_id, user_answer)
+    if dont_know:
+        user_answer = ""
+        correct = json.loads(r["options"])[int(r["answer"])] if r["options"] else r["answer"]
+        score, rationale = 0.0, f"The answer is: {correct}"
+    else:
+        score, rationale, correct = grade(conn, settings, llm, item_id, user_answer)
     conn.execute("UPDATE quiz_items SET user_answer=?, score=?, ts=? WHERE id=?",
                  (user_answer, score, knowledge.iso(now), item_id))
     ev = {"kind": "quiz", "node_id": r["node_id"], "mode": r["mode"], "feedback": str(score),
-          "diagnosis": json.dumps({"difficulty": r["difficulty"], "rationale": rationale}),
+          "diagnosis": json.dumps({"difficulty": r["difficulty"], "rationale": rationale, "dont_know": dont_know}),
           "ref_id": item_id, "query": r["question"], "ts": knowledge.iso(now)}
     deltas = knowledge.apply_event(conn, settings, ev, now)
     db.log_interaction(conn, deltas=deltas, **ev)

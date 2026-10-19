@@ -74,7 +74,8 @@ class FeedbackIn(BaseModel):
 
 class AnswerIn(BaseModel):
     item_id: int
-    answer: str
+    answer: str = ""
+    dont_know: bool = False
 
 
 class RatingIn(BaseModel):
@@ -217,7 +218,8 @@ def create_app(svc: Services | None = None) -> FastAPI:
     def quiz_answer(body: AnswerIn):
         with svc.db() as conn:
             try:
-                out = quiz.answer(conn, s, svc.llm, body.item_id, body.answer, knowledge.utcnow())
+                out = quiz.answer(conn, s, svc.llm, body.item_id, body.answer, knowledge.utcnow(),
+                                  dont_know=body.dont_know)
                 done = conn.execute(
                     "SELECT count(*) FROM quiz_items WHERE score IS NOT NULL").fetchone()[0] >= s.quiz_target
                 out["next"] = None if done else quiz.next_item(conn, s, svc.llm, svc.embedder, knowledge.utcnow())
