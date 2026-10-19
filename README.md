@@ -9,16 +9,16 @@ It's a tool for one person, served locally: FastAPI, SQLite, Claude, ElevenLabs 
 ## Run it
 
 ```
-pip install -r requirements.txt
+poetry install --without dev  # or plain `poetry install` to include the test tools
 cp .env.example .env          # add ANTHROPIC_API_KEY and ELEVENLABS_API_KEY
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Open http://localhost:8000. To use it from an iPhone on the same network, open `http://<your-mac>.local:8000`. The microphone needs HTTPS on iOS, so either use the text box or put the server behind something like `tailscale serve`.
 
 - The first run seeds the knowledge tree from `app/seed_taxonomy.json` and embeds it locally. The first time, this downloads `BAAI/bge-small-en-v1.5`.
 - Without an ElevenLabs key, the browser's own voice reads the recap, still with word highlighting.
-- `MNEMO_FAKE=1 uvicorn app.main:app` runs with offline stand-ins for Claude, ElevenLabs and the embedder. Use it to try the interface without keys.
+- `MNEMO_FAKE=1 poetry run uvicorn app.main:app` runs with offline stand-ins for Claude, ElevenLabs and the embedder. Use it to try the interface without keys.
 - Add `?debug=1` to the URL to open the debug drawer. It shows the tag distribution, the descent trace, the profile and prompt sent to the model, and the mastery deltas each action applied.
 
 ## Using it
@@ -60,9 +60,9 @@ Every change to the map is an event in `interactions`. Self-ratings, quiz answer
 ## Tests
 
 ```
-pip install -r requirements.txt
+poetry install
 cd tests && npm install && cd ..      # local copies of marked and KaTeX for the browser test
-python3 -m pytest tests
+poetry run pytest tests
 ```
 
 - `test_mastery.py` covers the update rules, decay, aggregation, priors and frontier ranking.

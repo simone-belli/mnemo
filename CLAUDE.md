@@ -10,7 +10,8 @@ A personal memory companion for one user (Simone Belli). You ask "remind me abou
 - Every change to the map must come from an event in `interactions` and go through `knowledge.deltas_for()`, so `knowledge.replay()` can rebuild it. If you add a new kind of event, add it to `deltas_for()` and to `test_map_rebuilds_from_interactions`.
 - Model names, weights and thresholds live in `app/config.py` / `.env`, never inline.
 - Never commit `.env`, API keys or `data/`.
-- Run `python3 -m pytest tests` before every push. The tests run offline with the fakes in `app/fakes.py`, and the browser test needs `cd tests && npm install`.
+- Dependencies are managed with Poetry: add them with `poetry add` (test tools with `poetry add --group dev`) and commit `poetry.lock`.
+- Run `poetry run pytest tests` before every push. The tests run offline with the fakes in `app/fakes.py`, and the browser test needs `cd tests && npm install`.
 
 ## Environment notes
 
