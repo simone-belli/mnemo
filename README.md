@@ -80,7 +80,7 @@ python3 -m pytest tests
 
 ## Notes and open questions
 
-- The logo in `static/logo/` is a placeholder piazza mark. Replace it with the real logo files and update the inline copy in `index.html`.
+- Logos live in `static/logo/`: `mnemo-mark.svg` (the full piazza scene), `mnemo-icon.svg` (inlined in the header of `index.html`), `favicon.svg` and `apple-touch-icon.png` (rendered from the icon for the iPhone home screen). The μ in each SVG is the EB Garamond glyph converted to a path, so it looks right even where the font can't load.
 - Tagging thresholds (`TAG_TEMPERATURE`, `TAG_THRESHOLD`) need tuning against the real embedder. Use the debug drawer.
 - `SAY_WHAT_I_KNOW` switches recaps between "You know X, so…" openings and just pitching at the right level.
 - The script for the ear is written by `SCRIPT_MODEL`, which defaults to the fast model to keep recall under 20 seconds. Set it to the recap model for better scripts.
