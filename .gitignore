@@ -1,0 +1,6 @@
+.env
+data/
+__pycache__/
+.pytest_cache/
+tests/node_modules/
+tests/package-lock.json

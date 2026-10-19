@@ -1,0 +1,74 @@
+[
+  {"name": "formal", "description": "Logic, mathematics and abstract structures: what can be proved, computed or counted.", "children": [
+    {"name": "logic", "description": "Formal reasoning, proof, set theory, computability and the foundations of mathematics."},
+    {"name": "algebra", "description": "Groups, rings, fields, linear algebra and representation theory."},
+    {"name": "analysis", "description": "Calculus, real and complex analysis, measure theory, functional analysis and differential equations."},
+    {"name": "geometry and topology", "description": "Euclidean and differential geometry, manifolds, topology and symmetry."},
+    {"name": "number theory", "description": "Integers, primes, Diophantine equations and arithmetic geometry."},
+    {"name": "combinatorics and graphs", "description": "Counting, discrete structures, graphs and networks."},
+    {"name": "probability and statistics", "description": "Random variables, stochastic processes, inference, Bayesian and frequentist statistics."},
+    {"name": "computer science", "description": "Algorithms, complexity, programming languages, information theory and machine learning theory."},
+    {"name": "optimisation and game theory", "description": "Convex optimisation, control, decision theory and strategic games."},
+    {"name": "history of mathematics", "description": "How mathematical ideas developed, from Euclid to Grothendieck."}
+  ]},
+  {"name": "nature", "description": "The natural world from physics through chemistry and earth science to biology.", "children": [
+    {"name": "classical physics", "description": "Mechanics, electromagnetism, optics, waves and thermodynamics."},
+    {"name": "statistical physics", "description": "Statistical mechanics, phase transitions, critical phenomena, disordered systems and complex systems."},
+    {"name": "quantum physics", "description": "Quantum mechanics, quantum field theory, particle physics and quantum information."},
+    {"name": "relativity and cosmology", "description": "Special and general relativity, gravitation, black holes and the history of the universe."},
+    {"name": "astronomy", "description": "Planets, stars, galaxies and observational astrophysics."},
+    {"name": "chemistry", "description": "Atoms, bonds, reactions, organic and physical chemistry, materials."},
+    {"name": "earth and climate", "description": "Geology, oceans, atmosphere, weather and climate change."},
+    {"name": "molecular and cell biology", "description": "Genes, proteins, cells, genetics and biochemistry."},
+    {"name": "evolution and ecology", "description": "Natural selection, the history of life, ecosystems and biodiversity."},
+    {"name": "medicine and the body", "description": "Human anatomy, physiology, disease, nutrition and health."},
+    {"name": "neuroscience", "description": "Neurons, brain circuits and the biology of the nervous system."}
+  ]},
+  {"name": "mind", "description": "Perception, psychology, cognition and consciousness: how minds work from the inside and outside.", "children": [
+    {"name": "perception", "description": "Vision, hearing, the senses and how the brain builds a picture of the world."},
+    {"name": "cognition", "description": "Memory, attention, reasoning, learning and decision making."},
+    {"name": "emotion and motivation", "description": "Feelings, moods, drives, stress and well-being."},
+    {"name": "developmental psychology", "description": "How minds grow from infancy through childhood to old age."},
+    {"name": "social psychology", "description": "How people think about, influence and relate to each other."},
+    {"name": "personality and clinical psychology", "description": "Individual differences, mental disorders and psychotherapy."},
+    {"name": "consciousness", "description": "Subjective experience, the hard problem, theories of consciousness, sleep and altered states."},
+    {"name": "philosophy of mind", "description": "Mind-body problem, intentionality, free will and personal identity."},
+    {"name": "language and the mind", "description": "Psycholinguistics, how language is acquired, produced and understood."},
+    {"name": "artificial minds", "description": "Cognitive science of AI, neural networks as models of mind, machine consciousness."}
+  ]},
+  {"name": "society", "description": "Human societies: history, politics, economics, law and language.", "children": [
+    {"name": "ancient history", "description": "Early civilisations, Greece, Rome, China and the ancient world."},
+    {"name": "medieval and early modern history", "description": "The Middle Ages, the Renaissance, the Reformation and the age of exploration."},
+    {"name": "modern history", "description": "Revolutions, empires, the world wars, the Cold War and the recent past."},
+    {"name": "politics", "description": "Political systems, ideologies, institutions, elections and international relations."},
+    {"name": "economics", "description": "Markets, macroeconomics, monetary policy, inequality and economic history."},
+    {"name": "finance", "description": "Financial markets, asset pricing, quantitative finance, risk and trading."},
+    {"name": "law", "description": "Legal systems, constitutions, rights and justice."},
+    {"name": "linguistics", "description": "Phonology, syntax, semantics, historical linguistics and the world's languages."},
+    {"name": "sociology and anthropology", "description": "Social structure, culture, kinship, institutions and everyday life."},
+    {"name": "geography and places", "description": "Countries, cities, regions and how people live in them."}
+  ]},
+  {"name": "artefacts", "description": "Things humans make: technology, engineering, art, literature, music, food and popular culture.", "children": [
+    {"name": "technology and engineering", "description": "Machines, electronics, computing systems, infrastructure and inventions."},
+    {"name": "software", "description": "Programming, software engineering, tools, the internet and data systems."},
+    {"name": "visual art", "description": "Painting, sculpture, drawing, photography and the history of art movements."},
+    {"name": "architecture and design", "description": "Buildings, cities, urbanism, industrial and graphic design."},
+    {"name": "literature", "description": "Novels, poetry, drama, literary movements and criticism."},
+    {"name": "music", "description": "Classical, jazz and popular music, composers, theory and performance."},
+    {"name": "film and theatre", "description": "Cinema, directors, theatre, television and performance."},
+    {"name": "food and cooking", "description": "Cuisines, recipes, cooking techniques, ingredients and wine."},
+    {"name": "games and sport", "description": "Board games, video games, chess and sports."},
+    {"name": "pop culture", "description": "Celebrities, fashion, internet culture, comics and entertainment."}
+  ]},
+  {"name": "ultimate", "description": "Metaphysics, religion and meaning: the deepest questions about being, value and life.", "children": [
+    {"name": "metaphysics", "description": "Being, time, causation, necessity and what exists."},
+    {"name": "epistemology", "description": "Knowledge, belief, justification, scepticism and the philosophy of science."},
+    {"name": "ethics", "description": "Moral theories, virtue, duty, consequences and applied ethics."},
+    {"name": "political philosophy", "description": "Justice, liberty, the state and social contracts."},
+    {"name": "aesthetics", "description": "Beauty, art and taste as philosophical questions."},
+    {"name": "world religions", "description": "Christianity, Islam, Judaism, Hinduism, Buddhism and other traditions."},
+    {"name": "mysticism and spirituality", "description": "Contemplation, meditation and mystical experience."},
+    {"name": "meaning of life", "description": "Existentialism, absurdism, death, happiness and how to live."},
+    {"name": "history of philosophy", "description": "Philosophers and schools from the presocratics to the present."}
+  ]}
+]

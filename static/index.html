@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1E3B34">
+  <title>Mnemo</title>
+  <link rel="icon" href="/static/logo/mnemo-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/logo/mnemo-mark.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,600&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/" aria-label="Mnemo, home">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="10" fill="#1E3B34"/>
+        <path d="M0 38h64v16a10 10 0 0 1-10 10H10A10 10 0 0 1 0 54z" fill="#D9A84E"/>
+        <path d="M6 38h24l30 18H32z" fill="#8A6526"/>
+        <path d="M6 20h24v18H6z" fill="#E8D9B5"/>
+        <path d="M9 38v-9a3 3 0 0 1 6 0v9zM16.5 38v-9a3 3 0 0 1 6 0v9zM24 38v-9a3 3 0 0 1 6 0v9z" fill="#1E3B34"/>
+        <path d="M44 14h7v24h-7z" fill="#E8D9B5"/>
+        <path d="M47.5 14V5" stroke="#E8D9B5" stroke-width="1.2"/>
+        <path d="M48 5l9 2.6-9 2.6z" fill="#C2502E"/>
+        <text x="11" y="16" font-family="'EB Garamond', Garamond, serif" font-size="15" font-style="italic" fill="#D9A84E">μ</text>
+      </svg>
+      <span class="wordmark">Mnemo</span>
+    </a>
+    <div class="modes" role="radiogroup" aria-label="Mode">
+      <button type="button" role="radio" data-mode="read">Read</button>
+      <button type="button" role="radio" data-mode="listen">Listen</button>
+      <button type="button" role="radio" data-mode="both">Read + Listen</button>
+    </div>
+  </header>
+
+  <main>
+    <form id="ask" autocomplete="off">
+      <input id="q" type="text" placeholder="Remind me about…" aria-label="Remind me about" enterkeyhint="go">
+      <button id="mic" type="button" class="icon" aria-label="Speak" title="Speak">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15zm6-3.5a6 6 0 0 1-12 0H4.5a7.5 7.5 0 0 0 6.75 7.46V21h1.5v-2.04a7.5 7.5 0 0 0 6.75-7.46z"/></svg>
+      </button>
+      <button id="go" type="submit" class="primary">Recall</button>
+    </form>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <!-- First run: self-rating, then the adaptive quiz -->
+    <section id="onboarding" class="card" hidden>
+      <div id="rate-step">
+        <h2>Where do you stand?</h2>
+        <p class="muted">A quick, rough self-rating per domain. It only sets weak starting points; the quiz and every recap refine them.</p>
+        <div id="ratings"></div>
+        <div class="row">
+          <button type="button" id="rate-go" class="primary">Continue to the quiz</button>
+          <button type="button" id="rate-skip" class="link">Skip</button>
+        </div>
+      </div>
+      <div id="quiz-step" hidden>
+        <div class="progress"><div id="quiz-bar"></div></div>
+        <p class="crumbs" id="quiz-topic"></p>
+        <h2 id="quiz-q"></h2>
+        <div id="quiz-options" class="options"></div>
+        <form id="quiz-free" class="row" hidden>
+          <input id="quiz-text" type="text" placeholder="Your answer" aria-label="Your answer">
+          <button type="submit" class="primary">Answer</button>
+        </form>
+        <p id="quiz-result" class="result"></p>
+        <div class="row">
+          <button type="button" id="quiz-next" class="primary" hidden>Next question</button>
+          <button type="button" id="quiz-stop" class="link">Stop and start using Mnemo</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The recap -->
+    <article id="card" class="card" hidden>
+      <nav class="crumbs" id="crumbs" aria-label="Topic"></nav>
+      <div id="player" class="player">
+        <button type="button" id="play" class="icon round" aria-label="Play">
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+        </button>
+        <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
+        <span id="time" class="time">0:00</span>
+        <button type="button" id="again" class="icon" aria-label="Play again" title="Play again">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+        </button>
+      </div>
+      <div id="script" class="script"></div>
+      <details id="written">
+        <summary>Written recap</summary>
+        <div id="recap" class="md"></div>
+      </details>
+
+      <div id="feedback" class="feedback">
+        <button type="button" data-signal="deeper">Deeper</button>
+        <button type="button" data-signal="simpler">Simpler</button>
+        <button type="button" data-signal="knew_that">Knew that</button>
+        <button type="button" data-signal="lost_me">Lost me</button>
+      </div>
+      <form id="lost" class="row" hidden>
+        <input id="lost-note" type="text" placeholder="What lost you? (optional)" aria-label="What lost you">
+        <button type="submit" class="primary">Send</button>
+      </form>
+      <p id="fb-result" class="result"></p>
+    </article>
+
+    <section id="next" class="next" hidden>
+      <h3>Next</h3>
+      <div id="chips" class="chips"></div>
+    </section>
+
+    <details id="debug" class="debug" hidden>
+      <summary>Debug</summary>
+      <div id="debug-body"></div>
+    </details>
+  </main>
+
+  <footer class="foot">
+    <button type="button" id="recalibrate" class="link">Recalibrate</button>
+    <span class="muted">Remember what you know.</span>
+  </footer>
+</body>
+</html>

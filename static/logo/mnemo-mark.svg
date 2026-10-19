@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mnemo">
+  <!-- Placeholder piazza mark: replace with the provided logo files. The μ needs EB Garamond loaded. -->
+  <rect width="64" height="64" rx="10" fill="#1E3B34"/>
+  <path d="M0 38h64v16a10 10 0 0 1-10 10H10A10 10 0 0 1 0 54z" fill="#D9A84E"/>
+  <path d="M6 38h24l30 18H32z" fill="#8A6526"/>
+  <path d="M6 20h24v18H6z" fill="#E8D9B5"/>
+  <path d="M9 38v-9a3 3 0 0 1 6 0v9zM16.5 38v-9a3 3 0 0 1 6 0v9zM24 38v-9a3 3 0 0 1 6 0v9z" fill="#1E3B34"/>
+  <path d="M44 14h7v24h-7z" fill="#E8D9B5"/>
+  <path d="M47.5 14V5" stroke="#E8D9B5" stroke-width="1.2"/>
+  <path d="M48 5l9 2.6-9 2.6z" fill="#C2502E"/>
+  <text x="11" y="16" font-family="'EB Garamond', Garamond, serif" font-size="15" font-style="italic" fill="#D9A84E">μ</text>
+</svg>

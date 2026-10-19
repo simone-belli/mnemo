@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "description": "Local copies of the CDN libraries used by static/index.html, so the browser test runs without network access.",
+  "devDependencies": {
+    "katex": "0.16.11",
+    "marked": "12.0.2"
+  }
+}
