@@ -2,7 +2,8 @@
 
 They answer quickly and deterministically, and they look at the prompt just enough for the
 whole loop to behave sensibly: the fake recap reports the mastery level and leads with a
-diagnosed gap, the fake judge flags proper nouns as "more specific", and so on.
+diagnosed gap, the fake judge flags proper nouns as "more specific", the quiz asks real
+questions from `fake_quiz.json` and grades free text by its key ideas, and so on.
 """
 from __future__ import annotations
 
@@ -10,8 +11,13 @@ import io
 import json
 import re
 import wave
+from pathlib import Path
 
 from .tts import AudioCache, content_hash
+
+QUIZ_BANK = {k: v for k, v in json.loads((Path(__file__).parent / "fake_quiz.json").read_text()).items()
+             if not k.startswith("_")}
+SHORT_KEYWORDS = {v["short"][0]: v["short"][2] for v in QUIZ_BANK.values()}
 
 CPS = 15.0   # fake speech rate, characters per second
 STARTERS = {"Remind", "Tell", "What", "Why", "How", "Explain", "The", "A", "An", "Please", "Who", "When"}
@@ -26,6 +32,7 @@ def topic_of(query: str) -> str:
 class FakeLLM:
     def __init__(self):
         self.calls: list[dict] = []
+        self.asked: set[str] = set()       # quiz questions already given, so the bank isn't repeated
 
     # -------------------------------------------------------------- text
 
@@ -94,8 +101,19 @@ class FakeLLM:
         return {"kind": "missing_prerequisite", "term": term, "explanation": f"The recap assumed {term}."}
 
     def _quiz_item(self, prompt):
-        topic = re.search(r"Topic: (.*?) —", prompt).group(1)
-        if "multiple choice" in prompt:
+        """A real question from fake_quiz.json for the deepest topic on the path that has one
+        left in the requested format; the old generic stand-in otherwise."""
+        path = re.search(r"Topic: (.*?) —", prompt).group(1).split(" › ")
+        kind = "choice" if "multiple choice" in prompt else "short"
+        for name in reversed(path):
+            entry = QUIZ_BANK.get(name, {}).get(kind)
+            if entry and entry[0] not in self.asked:
+                self.asked.add(entry[0])
+                if kind == "choice":
+                    return {"question": entry[0], "options": entry[1:5], "correct_index": 0, "answer": entry[1]}
+                return {"question": entry[0], "options": [], "correct_index": -1, "answer": entry[1]}
+        topic = path[-1]
+        if kind == "choice":
             return {"question": f"Which statement about {topic} is true?",
                     "options": ["The true one", "A false one", "Another false one", "A distractor"],
                     "correct_index": 0, "answer": "The true one"}
@@ -103,9 +121,11 @@ class FakeLLM:
                 "answer": "The central idea."}
 
     def _grade(self, prompt):
-        their = prompt.rsplit("Their answer: ", 1)[1].strip()
-        score = 1.0 if "central" in their.lower() else 0.5 if their else 0.0
-        return {"score": score, "rationale": "Fake grader."}
+        question = re.search(r"Question: (.*)", prompt).group(1).strip()
+        their = prompt.rsplit("Their answer: ", 1)[1].strip().lower()
+        keywords = SHORT_KEYWORDS.get(question, ["central"])
+        hits = sum(any(k in their for k in group.split("|")) for group in keywords)
+        return {"score": hits / len(keywords), "rationale": f"Fake grader: {hits} of {len(keywords)} key ideas."}
 
 
 def silent_wav(seconds: float, rate: int = 8000) -> bytes:

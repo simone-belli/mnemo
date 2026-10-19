@@ -66,13 +66,15 @@ def page(server):
         browser.close()
 
 
-def test_first_run_onboarding_then_quiz(page):
+def test_first_run_onboarding_then_quiz(page, svc):
     page.wait_for_selector("#onboarding:not([hidden])")
     assert page.locator(".rating").count() == 6
     page.fill("#ratings input >> nth=1", "5")
     page.click("#rate-go")
     page.wait_for_selector("#quiz-options button")
-    page.click("#quiz-options button >> nth=0")
+    with svc.db() as conn:
+        right = conn.execute("SELECT answer FROM quiz_items WHERE score IS NULL").fetchone()["answer"]
+    page.click(f"#quiz-options button >> nth={right}")
     page.wait_for_selector("#quiz-next:not([hidden])")
     assert "Right" in page.text_content("#quiz-result")
     page.click("#quiz-next")
@@ -140,3 +142,19 @@ def test_chip_runs_a_recall(page):
     page.click("#chips button >> nth=0")
     page.wait_for_function(f"document.querySelector('#crumbs').textContent !== {first_path!r}")
     assert len(page.locator("#crumbs span:not(.sep):not(.chip)").all()) >= 3
+
+
+def test_theme_switch_cycles_and_persists(page):
+    page.wait_for_selector("#onboarding:not([hidden])")
+    bg = lambda: page.evaluate("getComputedStyle(document.body).backgroundColor")
+    light = bg()
+    assert page.text_content("#theme") == "Theme: auto"
+    page.click("#theme")
+    assert page.text_content("#theme") == "Theme: light" and bg() == light
+    page.click("#theme")
+    assert page.text_content("#theme") == "Theme: dark" and bg() != light
+    page.reload()
+    page.wait_for_selector("#onboarding:not([hidden])")
+    assert page.text_content("#theme") == "Theme: dark" and bg() != light
+    page.click("#theme")
+    assert page.text_content("#theme") == "Theme: auto" and bg() == light

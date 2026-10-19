@@ -18,7 +18,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
 
 - The first run seeds the knowledge tree from `app/seed_taxonomy.json` and embeds it locally. The first time, this downloads `BAAI/bge-small-en-v1.5`.
 - Without an ElevenLabs key, the browser's own voice reads the recap, still with word highlighting.
-- `MNEMO_FAKE=1 poetry run uvicorn app.main:app` runs with offline stand-ins for Claude, ElevenLabs and the embedder. Use it to try the interface without keys.
+- `MNEMO_FAKE=1 poetry run uvicorn app.main:app` runs with offline stand-ins for Claude, ElevenLabs and the embedder. Use it to try the interface without keys. Its quiz asks real questions from `app/fake_quiz.json` (one of each kind per second-level topic), but recaps stay placeholders. Point it at a separate data folder (`MNEMO_DATA=data-fake`) so its made-up nodes stay out of your real map.
 - Add `?debug=1` to the URL to open the debug drawer. It shows the tag distribution, the descent trace, the profile and prompt sent to the model, and the mastery deltas each action applied.
 
 ## Using it
@@ -34,6 +34,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
   - While a recap is on screen, the same words work as voice commands.
 - **Next** chips are topics just past the edge of what you know. Tap one to recall it.
 - **Recalibrate** (in the footer) runs the onboarding again: a self-rating per domain, then an adaptive quiz you can stop at any time.
+- **Theme** (in the footer) switches between *auto* (follows the system's light or dark setting), *light* and *dark*.
 
 ## How it works
 
@@ -52,7 +53,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
 | `app/tts.py` | ElevenLabs `with-timestamps`, cached in `data/audio/` by content hash |
 | `app/embed.py` | Embedding interface: sentence-transformers, or a dependency-free hash embedder |
 | `app/llm.py` | Thin Anthropic wrapper: text, schema-constrained JSON, retries |
-| `app/fakes.py` | Offline Claude and ElevenLabs for `MNEMO_FAKE=1` and the tests |
+| `app/fakes.py` | Offline Claude and ElevenLabs for `MNEMO_FAKE=1` and the tests; `fake_quiz.json` is its question bank |
 | `static/` | `index.html`, `app.js`, `style.css`, `logo/` |
 
 Every change to the map is an event in `interactions`. Self-ratings, quiz answers and feedback are all stored there, alongside the creation time of each lazily created node. `POST /api/replay` rebuilds `mastery` and `preferences` from those events using the current weights in `config.py`, so the weights can be retuned after the fact.

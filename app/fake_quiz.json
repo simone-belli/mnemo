@@ -1,0 +1,243 @@
+{
+  "_about": "Offline quiz questions for MNEMO_FAKE=1 (see FakeLLM._quiz_item). One per second-level topic. choice: [question, correct option, three wrong options]; short: [question, model answer, keywords the fake grader looks for, alternatives separated by |].",
+  "logic": {
+    "choice": ["What does Gödel's first incompleteness theorem say about any consistent, effectively axiomatised theory that contains basic arithmetic?", "It contains true statements it cannot prove", "It can prove its own consistency", "Every statement in it is decidable", "It must be finitely axiomatisable"],
+    "short": ["What does it mean for a problem to be undecidable?", "No algorithm gives the correct yes/no answer for every instance; the halting problem is the classic example.", ["algorithm|procedure|computable", "every|all|halting"]]
+  },
+  "algebra": {
+    "choice": ["By Lagrange's theorem, the order of a subgroup of a finite group always…", "divides the order of the group", "equals the number of conjugacy classes", "is a prime number", "is half the order of the group"],
+    "short": ["What is an eigenvector of a linear map?", "A non-zero vector the map only rescales: A v = λ v, with λ its eigenvalue.", ["scal|multiple|λ|lambda", "direction|eigenvalue|non-zero|nonzero"]]
+  },
+  "analysis": {
+    "choice": ["Which property of the real numbers distinguishes them from the rationals?", "Every bounded non-empty set has a least upper bound", "They are closed under addition", "They are totally ordered", "They contain the integers"],
+    "short": ["What does uniform convergence add to pointwise convergence?", "The same N works for every point at once, so the sup of the error goes to zero; limits of continuous functions stay continuous.", ["same|every point|all x|sup|independent", "continu|error|zero"]]
+  },
+  "geometry and topology": {
+    "choice": ["Why is a coffee mug topologically the same as a doughnut?", "Each can be continuously deformed into the other; both have one hole", "Both have constant curvature", "Both have the same volume", "Both are simply connected"],
+    "short": ["What does Gauss's Theorema Egregium say about curvature?", "Gaussian curvature is intrinsic: it can be measured from distances within the surface, so it is preserved by isometries.", ["intrinsic|within the surface|metric", "isometr|bending|distance"]]
+  },
+  "number theory": {
+    "choice": ["Fermat's little theorem says that for a prime p and an integer a not divisible by p…", "a^(p-1) ≡ 1 (mod p)", "a^p ≡ 0 (mod p)", "p divides a + 1", "a^2 ≡ -1 (mod p)"],
+    "short": ["Roughly how many primes are there below a large number N?", "About N / ln N, by the prime number theorem.", ["log|ln", "prime number theorem|n/|n /"]]
+  },
+  "combinatorics and graphs": {
+    "choice": ["A connected graph has an Eulerian circuit exactly when…", "every vertex has even degree", "it has no cycles", "it is bipartite", "it has as many edges as vertices"],
+    "short": ["State the pigeonhole principle.", "If more than n objects go into n boxes, some box holds at least two.", ["box|hole|container", "two|more than one|at least"]]
+  },
+  "probability and statistics": {
+    "choice": ["What does the central limit theorem say about the mean of many i.i.d. variables with finite variance?", "Its distribution approaches a normal distribution", "It equals the median", "Its variance grows with the sample size", "It follows a Poisson distribution"],
+    "short": ["What is a p-value?", "The probability, assuming the null hypothesis is true, of data at least as extreme as what was observed.", ["null", "extreme|as large|at least"]]
+  },
+  "computer science": {
+    "choice": ["What is the worst-case time complexity of comparison-based sorting?", "Θ(n log n)", "Θ(n)", "Θ(n²) at best", "Θ(log n)"],
+    "short": ["What does it mean for a problem to be NP-complete?", "It is in NP and every problem in NP reduces to it in polynomial time.", ["np", "reduc|polynomial"]]
+  },
+  "optimisation and game theory": {
+    "choice": ["In a Nash equilibrium…", "no player gains by changing strategy alone", "every player gets the highest possible payoff", "the total payoff is maximised", "players must use pure strategies"],
+    "short": ["Why is convexity so valuable in optimisation?", "In a convex problem every local minimum is a global minimum, so local methods find the optimum.", ["local", "global"]]
+  },
+  "history of mathematics": {
+    "choice": ["Who developed calculus independently of Newton, introducing the dx notation still used today?", "Leibniz", "Euler", "Descartes", "Gauss"],
+    "short": ["What did Euclid's Elements establish as a way of doing mathematics?", "Deriving theorems from a small set of axioms and postulates by proof.", ["axiom|postulate", "proof|deduc|derive"]]
+  },
+  "classical physics": {
+    "choice": ["Noether's theorem links conservation of energy to which symmetry?", "Invariance under time translation", "Invariance under rotation", "Invariance under spatial translation", "Invariance under parity"],
+    "short": ["What do Maxwell's equations predict about light?", "That it is an electromagnetic wave travelling at c = 1/√(μ₀ε₀).", ["electromagnetic|em wave", "wave|speed|c"]]
+  },
+  "statistical physics": {
+    "choice": ["In the canonical ensemble, the probability of a microstate with energy E is proportional to…", "exp(−E / kT)", "E / kT", "exp(+E / kT)", "1 / E"],
+    "short": ["What is a critical exponent?", "The power with which a quantity diverges or vanishes near a continuous phase transition, e.g. ξ ∼ |T − Tc|^(−ν); it is universal.", ["power|exponent|scal", "critical|transition|diverg"]]
+  },
+  "quantum physics": {
+    "choice": ["What does the Pauli exclusion principle forbid?", "Two identical fermions occupying the same quantum state", "Two bosons occupying the same state", "Measuring position and momentum at all", "Electrons from tunnelling"],
+    "short": ["What is quantum entanglement?", "A joint state of several systems that cannot be written as a product of individual states, giving correlations stronger than any classical ones.", ["product|separab|joint", "correlat|together|bell"]]
+  },
+  "relativity and cosmology": {
+    "choice": ["What does the equivalence principle state?", "Locally, gravity is indistinguishable from acceleration", "Mass and energy are equivalent", "All inertial frames see the same speed of light", "Space and time are equivalent"],
+    "short": ["What is the cosmic microwave background?", "Relic radiation from when the universe became transparent, about 380,000 years after the Big Bang, now cooled to about 2.7 K.", ["big bang|early universe|recombination|transparent", "radiation|2.7|microwave"]]
+  },
+  "astronomy": {
+    "choice": ["What powers a main-sequence star?", "Hydrogen fusing into helium in its core", "Gravitational collapse alone", "Radioactive decay of heavy elements", "Helium fission"],
+    "short": ["How do astronomers usually detect exoplanets?", "By the dip in a star's light as a planet transits, or by the star's Doppler wobble.", ["transit|dip|dimming", "wobble|doppler|radial velocity"]]
+  },
+  "chemistry": {
+    "choice": ["What does a catalyst do to a reaction?", "Lowers the activation energy without being consumed", "Shifts the equilibrium towards the products", "Makes it more exothermic", "Is used up to drive it forward"],
+    "short": ["What makes a bond covalent rather than ionic?", "Electrons are shared between atoms rather than transferred from one to the other.", ["shar", "electron"]]
+  },
+  "earth and climate": {
+    "choice": ["What drives the movement of tectonic plates?", "Convection in the mantle and slab pull", "The Moon's tides", "The Earth's magnetic field", "Ocean currents"],
+    "short": ["How does the greenhouse effect warm the Earth?", "Gases such as CO₂ and water vapour absorb outgoing infrared radiation and re-emit it, partly back towards the surface.", ["infrared|heat|radiation", "absorb|trap|re-emit"]]
+  },
+  "molecular and cell biology": {
+    "choice": ["In the central dogma, what does a ribosome do?", "Translates messenger RNA into protein", "Copies DNA into RNA", "Replicates DNA", "Splices introns out of RNA"],
+    "short": ["What is the role of mitochondria?", "They produce most of the cell's ATP through respiration.", ["atp|energy", "respiration|oxidat|power"]]
+  },
+  "evolution and ecology": {
+    "choice": ["What is genetic drift?", "Random change in allele frequencies, strongest in small populations", "Adaptation driven by the environment", "Movement of genes between populations", "Mutation caused by radiation"],
+    "short": ["What does natural selection need in order to work?", "Heritable variation in traits that affects survival or reproduction.", ["variation|differ", "herit|inherit|offspring|reproduc"]]
+  },
+  "medicine and the body": {
+    "choice": ["What do antibiotics treat?", "Bacterial infections", "Viral infections", "Allergies", "Autoimmune diseases"],
+    "short": ["How does a vaccine protect you?", "It trains the immune system with a harmless antigen so that it responds quickly to the real pathogen.", ["immun|antibod", "antigen|memory|train|recogn"]]
+  },
+  "neuroscience": {
+    "choice": ["What carries a signal across a chemical synapse?", "Neurotransmitter molecules", "An electrical current through gap proteins", "Myelin", "Glial cells"],
+    "short": ["What is an action potential?", "A brief all-or-nothing spike in a neuron's membrane voltage that travels down the axon.", ["voltage|membrane|potential|spike", "axon|travel|all-or-nothing|propagat"]]
+  },
+  "perception": {
+    "choice": ["Where does the optic nerve leave the eye?", "At the blind spot, where there are no photoreceptors", "At the fovea", "Through the lens", "At the iris"],
+    "short": ["Why do we see depth with two eyes?", "Each eye sees from a slightly different position, and the brain uses the disparity between the images.", ["different|two images|each eye", "disparity|differ|compare"]]
+  },
+  "cognition": {
+    "choice": ["Roughly how many items can working memory hold at once?", "About four (Miller's old estimate was seven, plus or minus two)", "About forty", "Exactly one", "Several hundred"],
+    "short": ["What is the availability heuristic?", "Judging how likely something is by how easily examples come to mind.", ["eas|readily|come to mind|recall", "likel|probab|frequen"]]
+  },
+  "emotion and motivation": {
+    "choice": ["Which brain structure is most associated with fear?", "The amygdala", "The cerebellum", "The hippocampus", "The visual cortex"],
+    "short": ["What is the difference between intrinsic and extrinsic motivation?", "Intrinsic motivation comes from the activity itself; extrinsic from outside rewards or pressures.", ["itself|enjoy|interest|inner", "reward|external|outside"]]
+  },
+  "developmental psychology": {
+    "choice": ["Piaget's object permanence is…", "knowing that things exist when out of sight", "the ability to sort objects by size", "remembering the names of objects", "attachment to a favourite object"],
+    "short": ["What is attachment theory about?", "The bond an infant forms with a caregiver, which provides a secure base and shapes later relationships.", ["bond|attach", "caregiver|mother|parent"]]
+  },
+  "social psychology": {
+    "choice": ["What did Asch's line experiments show?", "People often conform to a group's obviously wrong answer", "People obey authority figures to harm others", "Groups make better decisions than individuals", "First impressions are accurate"],
+    "short": ["What is the bystander effect?", "People are less likely to help in an emergency when others are present.", ["less likely|don't help|fail to help|less help", "others|crowd|present"]]
+  },
+  "personality and clinical psychology": {
+    "choice": ["Which of these is one of the Big Five personality traits?", "Conscientiousness", "Intelligence", "Optimism", "Honesty"],
+    "short": ["What is the core idea of cognitive behavioural therapy?", "Thoughts, feelings and behaviour influence each other, so changing unhelpful thoughts and behaviours changes how you feel.", ["thought|cogniti|belief", "behavio"]]
+  },
+  "consciousness": {
+    "choice": ["What is the 'hard problem' of consciousness?", "Why physical processes give rise to subjective experience at all", "How the brain stores memories", "How attention selects stimuli", "Why we sleep"],
+    "short": ["What is blindsight?", "After damage to the visual cortex, people respond accurately to things they say they cannot see.", ["visual cortex|damage|v1", "respond|guess|accurate|without seeing|cannot see"]]
+  },
+  "philosophy of mind": {
+    "choice": ["Functionalism defines mental states by…", "the causal role they play", "the substance they are made of", "how they feel from inside", "the neurons that realise them"],
+    "short": ["What is the point of Jackson's Mary's room thought experiment?", "Mary knows every physical fact about colour but learns something new when she first sees red, which suggests physicalism leaves something out.", ["physical|all the facts|knows everything", "new|learn|qualia|red"]]
+  },
+  "language and the mind": {
+    "choice": ["Damage to Broca's area typically causes…", "halting speech with relatively good comprehension", "fluent but meaningless speech", "loss of reading only", "inability to hear sounds"],
+    "short": ["What does the critical period hypothesis say about language?", "Language is acquired most easily in childhood; full native fluency becomes much harder after it.", ["child|early|young", "harder|window|period"]]
+  },
+  "artificial minds": {
+    "choice": ["Searle's Chinese room argument claims that…", "running the right program is not enough for understanding", "computers can never pass the Turing test", "Chinese is harder to process than English", "the brain is a computer"],
+    "short": ["What does the Turing test check?", "Whether a machine's conversation can be told apart from a human's by an interrogator.", ["human|person", "tell apart|distinguish|indistinguishable|fool"]]
+  },
+  "ancient history": {
+    "choice": ["Which empire built the road network and aqueducts across the Mediterranean world?", "The Roman Empire", "The Persian Empire", "The Han dynasty", "The Mauryan Empire"],
+    "short": ["What was Athenian democracy, and who could take part?", "Direct rule by the citizens' assembly; only adult male citizens could vote, not women, slaves or foreigners.", ["citizen|assembly|direct", "male|men|not women|slave"]]
+  },
+  "medieval and early modern history": {
+    "choice": ["What event in 1517 is usually taken as the start of the Reformation?", "Luther's Ninety-five Theses", "The fall of Constantinople", "The Council of Trent", "The Peace of Westphalia"],
+    "short": ["Why did the printing press matter so much?", "It made books cheap and fast to copy, spreading ideas, literacy and religious and scientific debate.", ["cheap|fast|mass|copies", "ideas|spread|literacy|reformation"]]
+  },
+  "modern history": {
+    "choice": ["Which event is usually seen as the immediate trigger of the First World War?", "The assassination of Archduke Franz Ferdinand", "The invasion of Poland", "The sinking of the Lusitania", "The Russian Revolution"],
+    "short": ["What was the Cold War?", "A rivalry from 1947 to 1991 between the US and the USSR, fought through arms races, proxy wars and ideology rather than direct war.", ["us|america|united states|west", "soviet|ussr|russia"]]
+  },
+  "politics": {
+    "choice": ["In a parliamentary system, the head of government…", "depends on the confidence of the legislature", "is elected separately from the legislature", "is always a monarch", "cannot be removed before the next election"],
+    "short": ["What is the separation of powers?", "Splitting government into legislative, executive and judicial branches that check each other.", ["legislat|executive|judic", "check|balance|separate"]]
+  },
+  "economics": {
+    "choice": ["When a central bank raises interest rates, it usually aims to…", "reduce inflation", "increase unemployment for its own sake", "weaken the currency", "raise house prices"],
+    "short": ["What is opportunity cost?", "The value of the best alternative you give up when you make a choice.", ["alternative|next best|instead", "give up|forgo|lost"]]
+  },
+  "finance": {
+    "choice": ["In the Black–Scholes model, which input is not directly observable?", "The volatility of the underlying", "The strike price", "The time to expiry", "The risk-free rate"],
+    "short": ["What does diversification do to a portfolio?", "Combining imperfectly correlated assets lowers risk for the same expected return; only systematic risk remains.", ["risk|variance|volatility", "correlat|lower|reduc"]]
+  },
+  "law": {
+    "choice": ["What distinguishes common law from civil law systems?", "The weight given to judicial precedent", "Whether there is a constitution", "Whether there are juries in civil cases only", "Whether laws are written down at all"],
+    "short": ["What does 'innocent until proven guilty' mean in practice?", "The prosecution carries the burden of proof, and in criminal cases must prove guilt beyond reasonable doubt.", ["burden|prosecution|prove", "reasonable doubt|evidence|presum"]]
+  },
+  "linguistics": {
+    "choice": ["What is a phoneme?", "The smallest sound unit that distinguishes meaning in a language", "The smallest unit of meaning", "A written letter", "A syllable"],
+    "short": ["What did Grimm's law describe?", "A regular set of consonant shifts from Proto-Indo-European to Proto-Germanic, such as p to f (pater, father).", ["consonant|sound", "germanic|shift|indo-european"]]
+  },
+  "sociology and anthropology": {
+    "choice": ["What did Durkheim's study of suicide argue?", "Suicide rates depend on social integration and regulation", "Suicide is purely an individual psychological matter", "Suicide is mainly genetic", "Suicide rates are the same in every society"],
+    "short": ["What does 'cultural relativism' mean in anthropology?", "Understanding a culture's practices on its own terms rather than judging them by your own culture's standards.", ["own terms|context|within", "judg|standard|own culture"]]
+  },
+  "geography and places": {
+    "choice": ["Which is the longest river in South America?", "The Amazon", "The Paraná", "The Orinoco", "The São Francisco"],
+    "short": ["Why do cities so often grow up on rivers and coasts?", "Water gives drinking water, trade and transport routes, and fertile land.", ["trade|transport|port", "water|fertile|food"]]
+  },
+  "technology and engineering": {
+    "choice": ["What does a transistor do in a digital circuit?", "Acts as a switch controlled by a small voltage", "Stores energy in a magnetic field", "Converts light into heat", "Measures temperature"],
+    "short": ["Why do power grids transmit electricity at high voltage?", "For the same power, higher voltage means lower current, so less energy is lost as heat in the lines (losses go as I²R).", ["current", "loss|heat|i²r|i^2r"]]
+  },
+  "software": {
+    "choice": ["What does version control such as Git mainly give you?", "A history of changes you can branch, merge and revert", "Faster programs", "Automatic bug detection", "Encrypted source code"],
+    "short": ["What is a race condition?", "A bug where the result depends on the unpredictable timing of concurrent operations on shared state.", ["timing|order|interleav", "concurren|thread|parallel|shared"]]
+  },
+  "visual art": {
+    "choice": ["Which technique, developed in Renaissance Florence, made painted space look deep?", "Linear perspective with a vanishing point", "Pointillism", "Cubist fragmentation", "Gold-leaf backgrounds"],
+    "short": ["What were the Impressionists trying to capture?", "The fleeting effects of light and colour, often painted outdoors with quick, visible brushstrokes.", ["light", "moment|fleeting|outdoor|brushstroke"]]
+  },
+  "architecture and design": {
+    "choice": ["What structural innovation let Gothic cathedrals have tall walls full of windows?", "Flying buttresses carrying the thrust outward", "Reinforced concrete", "Steel frames", "Domes on pendentives"],
+    "short": ["What does 'form follows function' mean?", "A building's or object's shape should come from its purpose rather than from decoration.", ["purpose|function|use", "shape|form|decorat|ornament"]]
+  },
+  "literature": {
+    "choice": ["Which novel opens with 'Call me Ishmael'?", "Moby-Dick", "The Old Man and the Sea", "Robinson Crusoe", "Heart of Darkness"],
+    "short": ["What is an unreliable narrator?", "A narrator whose account the reader cannot fully trust, through bias, ignorance or deceit.", ["narrat", "trust|unreliable|bias|lie|decei"]]
+  },
+  "music": {
+    "choice": ["In equal temperament, how many semitones make up an octave?", "Twelve", "Seven", "Eight", "Ten"],
+    "short": ["What is a fugue?", "A contrapuntal piece in which a subject is introduced in one voice and taken up in turn by the others.", ["subject|theme|counterpoint|contrapuntal", "voice|imitat"]]
+  },
+  "film and theatre": {
+    "choice": ["Who directed 'Citizen Kane' (1941)?", "Orson Welles", "Alfred Hitchcock", "John Ford", "Billy Wilder"],
+    "short": ["What is the 'fourth wall' in theatre?", "The imaginary wall between the stage and the audience; breaking it means addressing the audience directly.", ["audience", "stage|imaginary|address|break"]]
+  },
+  "food and cooking": {
+    "choice": ["What is the Maillard reaction responsible for?", "The browning and savoury flavour of seared meat and toast", "Bread rising", "Milk curdling", "Vegetables turning soft"],
+    "short": ["Why do you rest a steak after cooking it?", "So the juices redistribute and the temperature evens out, so less liquid runs out when you cut it.", ["juice|liquid|moisture", "redistribut|settle|even|cut"]]
+  },
+  "games and sport": {
+    "choice": ["In chess, what is castling?", "Moving the king two squares towards a rook, which jumps over it", "Promoting a pawn on the last rank", "Capturing a pawn en passant", "Trading queens"],
+    "short": ["What is the offside rule in football, roughly?", "An attacker is offside if, when the ball is played to them, they are nearer the goal line than both the ball and the second-last defender.", ["defender|opponent", "ball|goal line|behind|nearer|ahead"]]
+  },
+  "pop culture": {
+    "choice": ["Which band released the album 'Abbey Road'?", "The Beatles", "The Rolling Stones", "Pink Floyd", "Led Zeppelin"],
+    "short": ["What is a meme in the original sense, as Dawkins coined it?", "A unit of culture, such as an idea or tune, that spreads by imitation, by analogy with a gene.", ["cultur|idea", "spread|imitat|gene|replicat"]]
+  },
+  "metaphysics": {
+    "choice": ["What does the Ship of Theseus puzzle question?", "Whether an object stays the same when all its parts are replaced", "Whether time travel is possible", "Whether ships have essences", "Whether the past is real"],
+    "short": ["What is the difference between presentism and eternalism about time?", "Presentism says only the present exists; eternalism says past, present and future are all equally real.", ["present", "past|future|equally|all"]]
+  },
+  "epistemology": {
+    "choice": ["What did Gettier's cases challenge?", "The idea that knowledge is justified true belief", "The existence of the external world", "The reliability of perception", "The possibility of a priori knowledge"],
+    "short": ["What is the problem of induction?", "We can't justify, without circularity, inferring from past observations to unobserved cases (Hume).", ["past|observ|experience", "justif|future|circular|unobserved"]]
+  },
+  "ethics": {
+    "choice": ["What does a consequentialist judge an action by?", "Its outcomes", "Whether it follows a rule", "The character of the person acting", "Whether God commands it"],
+    "short": ["What is Kant's categorical imperative, in its universal-law form?", "Act only on a maxim that you could will to become a universal law.", ["maxim|principle|rule", "universal|everyone"]]
+  },
+  "political philosophy": {
+    "choice": ["Behind Rawls's 'veil of ignorance', people choose principles of justice without knowing…", "their own place in society", "the laws of economics", "the history of their society", "what other people want"],
+    "short": ["What is the social contract?", "The idea that political authority is legitimate because people agree, actually or hypothetically, to give up some freedoms for the protection of a state.", ["agree|consent|contract", "state|authority|govern|freedom"]]
+  },
+  "aesthetics": {
+    "choice": ["Kant held that a judgement of beauty is…", "disinterested but claims everyone's agreement", "merely a personal preference", "an objective fact like mass", "about the usefulness of the object"],
+    "short": ["What did Duchamp's 'Fountain' (1917) challenge?", "What counts as art: a mass-produced urinal became art by being chosen and presented as art.", ["art", "chosen|ready-made|readymade|context|ordinary|object"]]
+  },
+  "world religions": {
+    "choice": ["What are the Four Noble Truths a part of?", "Buddhism", "Hinduism", "Jainism", "Sikhism"],
+    "short": ["What are the Five Pillars of Islam?", "Declaration of faith, prayer, almsgiving, fasting in Ramadan and pilgrimage to Mecca.", ["prayer|faith|shahada", "fast|ramadan|pilgrimage|hajj|alms|zakat"]]
+  },
+  "mysticism and spirituality": {
+    "choice": ["Sufism is a mystical tradition within…", "Islam", "Judaism", "Hinduism", "Christianity"],
+    "short": ["What is the aim of mindfulness meditation?", "Paying attention to present experience, deliberately and without judgement.", ["attention|aware", "present|now|without judg|non-judg"]]
+  },
+  "meaning of life": {
+    "choice": ["In Camus's 'The Myth of Sisyphus', the right response to the absurd is…", "revolt: to live fully while knowing life has no inherent meaning", "suicide", "faith in God", "to stop caring about anything"],
+    "short": ["What does Sartre mean by 'existence precedes essence'?", "There is no given human nature: we exist first and make ourselves through our choices.", ["nature|essence|given", "choice|choose|make|create"]]
+  },
+  "history of philosophy": {
+    "choice": ["Who wrote 'I think, therefore I am'?", "Descartes", "Spinoza", "Locke", "Kant"],
+    "short": ["What is Plato's allegory of the cave about?", "Prisoners take shadows for reality; philosophy is the climb out to see the real forms, the truth behind appearances.", ["shadow|appearance", "real|truth|form|knowledge|enlighten"]]
+  }
+}
