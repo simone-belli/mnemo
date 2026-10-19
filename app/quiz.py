@@ -83,7 +83,7 @@ GRADE_SCHEMA = obj({"score": {"type": "number"}, "rationale": {"type": "string"}
 
 
 def generate_item(conn, settings: Settings, llm, node_id: int, mode: str, difficulty: float,
-                  multiple_choice: bool) -> int:
+                  multiple_choice: bool, rng: random.Random | None = None) -> int:
     topic = " › ".join(n["name"] for n in db.path(conn, node_id))
     node = db.get_node(conn, node_id)
     kind = ("multiple choice with exactly 4 options, one correct; set correct_index (0-3) and put the correct "
@@ -94,7 +94,13 @@ def generate_item(conn, settings: Settings, llm, node_id: int, mode: str, diffic
               f"Format: {kind}.")
     item = llm.json("quiz_item", ITEM_SYSTEM, prompt, ITEM_SCHEMA, settings.fast_model)
     options = item["options"][:4] if multiple_choice and len(item.get("options", [])) >= 2 else None
-    answer = str(item["correct_index"]) if options else item["answer"]
+    if options and 0 <= item["correct_index"] < len(options):
+        # Models tend to put the right option first, so shuffle and keep track of it.
+        correct = options[item["correct_index"]]
+        (rng or random.Random()).shuffle(options)
+        answer = str(options.index(correct))
+    else:
+        options, answer = None, item["answer"]
     cur = conn.execute(
         "INSERT INTO quiz_items(node_id, mode, difficulty, question, options, answer, ts) VALUES(?,?,?,?,?,?,?)",
         (node_id, mode, difficulty, item["question"], json.dumps(options) if options else None, answer,
@@ -110,6 +116,13 @@ def item_payload(conn, item_id: int, target: int) -> dict:
             "options": json.loads(r["options"]) if r["options"] else None,
             "topic": [n["name"] for n in db.path(conn, r["node_id"])], "mode": r["mode"],
             "difficulty": r["difficulty"], "progress": {"answered": answered, "target": target}}
+
+
+def discard_pending(conn) -> None:
+    """Drop unanswered items, e.g. at start-up, so one written by the offline fake (or an older
+    prompt) isn't served again. They have no interactions, so the map is unaffected."""
+    conn.execute("DELETE FROM quiz_items WHERE score IS NULL")
+    conn.commit()
 
 
 def next_item(conn, settings: Settings, llm, embedder, now: datetime) -> dict:

@@ -1,6 +1,7 @@
 // Mnemo front end. Plain script, no build step.
 // Sections: 1. helpers · 2. Markdown + maths · 3. modes · 4. recall · 5. audio and highlighting
-//           6. feedback · 7. next steps · 8. voice input · 9. onboarding quiz · 10. debug · 11. start-up
+//           6. feedback · 7. next steps · 8. voice input · 9. onboarding quiz · 10. debug · 11. theme
+//           12. start-up
 (() => {
   'use strict';
 
@@ -565,9 +566,25 @@
   }
 
   // ======================================================================
-  // 11. Start-up
+  // 11. Theme: auto (follow the system), light or dark; the <head> applies it before first paint
+  // ======================================================================
+  const THEMES = ['auto', 'light', 'dark'];
+  function setTheme(t) {
+    if (t === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+    store.set('theme', t === 'auto' ? '' : t);
+    $('theme').textContent = 'Theme: ' + t;
+  }
+  $('theme').addEventListener('click', () => {
+    const now = document.documentElement.dataset.theme || 'auto';
+    setTheme(THEMES[(THEMES.indexOf(now) + 1) % THEMES.length]);
+  });
+
+  // ======================================================================
+  // 12. Start-up
   // ======================================================================
   setMode(mode);
+  setTheme(document.documentElement.dataset.theme || 'auto');
   (async () => {
     try {
       const st = await api('/api/state');

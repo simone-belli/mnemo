@@ -1,7 +1,9 @@
 """End-to-end API tests with fake Claude/ElevenLabs (SPEC §12 acceptance criteria, where testable offline)."""
 import pytest
 
-from app import db, knowledge
+from app import db, knowledge, quiz
+from app.fakes import QUIZ_BANK
+from app.main import create_app
 
 
 def recall(client, query, **kw):
@@ -121,24 +123,54 @@ def test_next_steps_follow_the_frontier(svc, client):
     assert all(s["path"][0] == "nature" and s["score"] > 0 for s in steps)
 
 
+def correct_option(svc, item_id: int) -> str:
+    with svc.db() as conn:
+        return conn.execute("SELECT answer FROM quiz_items WHERE id=?", (item_id,)).fetchone()["answer"]
+
+
 def test_quiz_flow(svc, client):
     client.post("/api/quiz/rating", json={"ratings": {"formal": 4, "nature": 5, "artefacts": 2}})
     item = client.get("/api/quiz/next").json()
     assert item["options"] and len(item["options"]) == 4 and item["progress"] == {"answered": 0, "target": 20}
+    assert "true one" not in " ".join(item["options"]).lower()      # a real question from the offline bank
     assert client.get("/api/quiz/next").json()["item_id"] == item["item_id"]       # unanswered item is reused
-    r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": "0"}).json()
+    right = correct_option(svc, item["item_id"])
+    r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": right}).json()
     assert r["score"] == 1.0 and r["deltas"][0]["d_alpha"] > 0
     assert len(r["deltas"]) > 1                                       # strong answer: siblings get a boost
     assert all(d["d_alpha"] == 0.2 for d in r["deltas"][1:])
-    assert client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": "0"}).status_code == 409
+    assert client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": right}).status_code == 409
     nxt = r["next"]
     assert nxt["progress"]["answered"] == 1 and nxt["item_id"] != item["item_id"]
-    r = client.post("/api/quiz/answer", json={"item_id": nxt["item_id"], "answer": "2"}).json()
+    wrong = str((int(correct_option(svc, nxt["item_id"])) + 1) % 4)
+    r = client.post("/api/quiz/answer", json={"item_id": nxt["item_id"], "answer": wrong}).json()
     assert r["score"] == 0.0 and r["deltas"][0]["d_beta"] > 0
     free = r["next"]                                                  # every third item is free text
     assert free["options"] is None
-    r = client.post("/api/quiz/answer", json={"item_id": free["item_id"], "answer": "the central idea"}).json()
-    assert r["score"] == 1.0
+    model_answer = correct_option(svc, free["item_id"])
+    r = client.post("/api/quiz/answer", json={"item_id": free["item_id"], "answer": model_answer}).json()
+    assert r["score"] == 1.0 and r["correct"] == model_answer
+
+
+def test_offline_bank_covers_the_first_quiz_level(svc):
+    with svc.db() as conn:
+        assert {n["name"] for n in db.all_nodes(conn) if n["depth"] == 1} <= set(QUIZ_BANK)
+    for entry in QUIZ_BANK.values():
+        assert len(entry["choice"]) == 5 and len(entry["short"]) == 3
+
+
+def test_quiz_shuffles_options_and_drops_stale_items(svc, client):
+    """The right option isn't always first, and an unanswered item doesn't outlive a restart."""
+    with svc.db() as conn:
+        node = node_by_name(svc, "music")["id"]
+        firsts = set()
+        for _ in range(12):
+            item_id = quiz.generate_item(conn, svc.settings, svc.llm, node, "descriptive", 0.5, multiple_choice=True)
+            firsts.add(correct_option(svc, item_id))
+        assert len(firsts) > 1
+    stale = client.get("/api/quiz/next").json()["item_id"]
+    create_app(svc)
+    assert client.get("/api/quiz/next").json()["item_id"] != stale
 
 
 def test_map_endpoint(svc, client):

@@ -89,6 +89,7 @@ def create_app(svc: Services | None = None) -> FastAPI:
     with svc.db() as conn:
         taxonomy.seed(conn, svc.embedder)
         taxonomy.ensure_embeddings(conn, svc.embedder)
+        quiz.discard_pending(conn)
 
     app = FastAPI(title="Mnemo")
     app.state.svc = svc
