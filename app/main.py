@@ -47,7 +47,7 @@ def services(settings: Settings | None = None) -> Services:
         from .fakes import FakeLLM, FakeTTS
         llm, embedder, tts = FakeLLM(), make_embedder("hash"), FakeTTS(cache)
     else:
-        llm = LLM(s.anthropic_api_key)
+        llm = LLM(s.anthropic_api_key, s.anthropic_workspace_id)
         embedder = make_embedder(s.embed_model)
         tts = ElevenLabsTTS(s.elevenlabs_api_key, s.elevenlabs_voice_id, s.elevenlabs_model, cache)
     return Services(s, llm, embedder, tts, Tagger(s, llm, embedder))

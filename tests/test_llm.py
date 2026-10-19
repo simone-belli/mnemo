@@ -51,3 +51,8 @@ def test_refusal_and_bad_json_raise():
     llm, _ = make("not json")
     with pytest.raises(LLMError):
         llm.json("judge", "s", "p", obj({}), "claude-haiku-5-5")
+
+
+def test_workspace_header_only_when_set():
+    assert LLM("sk-test", workspace_id="wrkspc_123").client.default_headers["anthropic-workspace-id"] == "wrkspc_123"
+    assert "anthropic-workspace-id" not in LLM("sk-test").client.default_headers

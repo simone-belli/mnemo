@@ -18,9 +18,12 @@ class LLMError(RuntimeError):
 
 
 class LLM:
-    def __init__(self, api_key: str, max_retries: int = 3, timeout: float = 60.0):
+    def __init__(self, api_key: str, workspace_id: str = "", max_retries: int = 3, timeout: float = 60.0):
+        # A key that isn't scoped to a workspace must name one on every request.
+        headers = {"anthropic-workspace-id": workspace_id} if workspace_id else None
         # The SDK retries 408/409/429/5xx and connection errors with backoff.
-        self.client = anthropic.Anthropic(api_key=api_key or None, max_retries=max_retries, timeout=timeout)
+        self.client = anthropic.Anthropic(api_key=api_key or None, max_retries=max_retries, timeout=timeout,
+                                          default_headers=headers)
 
     def _create(self, model: str, system: str, prompt: str, max_tokens: int, effort: str, **extra):
         params = dict(
