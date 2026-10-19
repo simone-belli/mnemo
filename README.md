@@ -34,6 +34,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
   - While a recap is on screen, the same words work as voice commands.
 - **Next** chips are topics just past the edge of what you know. Tap one to recall it.
 - **Recalibrate** (in the footer) runs the onboarding again: a self-rating per domain, then an adaptive quiz you can stop at any time.
+  - *I don’t know* under a question shows the answer and counts as a wrong answer, which is better than guessing.
 - **Theme** (in the footer) switches between *auto* (follows the system's light or dark setting), *light* and *dark*.
 
 ## How it works
