@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" width="88" height="88" role="img" aria-label="Mnemo">
+<style>@import url('https://fonts.googleapis.com/css2?family=EB+Garamond&amp;display=swap');</style>
+<rect width="88" height="88" rx="20" fill="#1E3B34"/>
+<path d="M0 60 H88 V68 A20 20 0 0 1 68 88 H20 A20 20 0 0 1 0 68 Z" fill="#D9A84E"/>
+<polygon points="34,72 58,72 40,88 14,88" fill="#8A6526"/>
+<rect x="32" y="62" width="28" height="10" fill="#F2ECE0"/>
+<text x="46" y="52" text-anchor="middle" font-family="'EB Garamond', Georgia, serif" font-size="58" fill="#F2ECE0">μ</text>
+<path d="M66 14 L80 18 L66 22 Z" fill="#C2502E"/>
+<line x1="66" y1="14" x2="66" y2="30" stroke="#F2ECE0" stroke-width="1.5"/>
+</svg>
