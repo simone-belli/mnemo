@@ -4,6 +4,7 @@ A personal memory companion for one user (Simone Belli). You ask "remind me abou
 
 ## Ground rules
 
+- `main` holds version 0, pushed directly. From now on, every change goes on a branch and lands through a pull request; never push to `main`.
 - Keep it simple, readable and hackable: one FastAPI process, SQLite, one plain `static/index.html` + `app.js` + `style.css`. No build step and no framework. CDN libraries are pinned to exact versions.
 - `app/mastery.py` stays pure (no database or I/O) and unit-tested.
 - Every change to the map must come from an event in `interactions` and go through `knowledge.deltas_for()`, so `knowledge.replay()` can rebuild it. If you add a new kind of event, add it to `deltas_for()` and to `test_map_rebuilds_from_interactions`.
