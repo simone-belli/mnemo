@@ -1,4 +1,7 @@
-"""The feedback loop (SPEC §6): Deeper, Simpler, Knew that, Lost me, and repeat requests."""
+"""The feedback loop (SPEC §6): a 1–5 difficulty rating, and repeat requests.
+
+1 is "too easy, I knew it", 3 is "spot on", 5 is "lost me". A 5 comes with an optional note
+and runs a diagnosis of what was missing."""
 from __future__ import annotations
 
 import json
@@ -8,7 +11,8 @@ from . import db, knowledge
 from .config import Settings
 from .llm import obj
 
-SIGNALS = ("knew_that", "deeper", "simpler", "lost_me", "repeat")
+DIFFICULTIES = range(1, 6)
+LOST_ME = 5
 
 DIAGNOSE_SYSTEM = """A person was reading a short recap or explanation and said "lost me". Work out
 why, from the text, her question and her optional note:
@@ -32,16 +36,26 @@ def diagnose(llm, settings: Settings, recall_row, note: str | None) -> dict:
     return llm.json("diagnose", DIAGNOSE_SYSTEM, prompt, DIAGNOSE_SCHEMA, settings.fast_model)
 
 
-def handle(conn, settings: Settings, llm, tagger, interaction_id: int, signal: str, note: str | None,
-           now: datetime) -> dict:
+def signal_for(difficulty: int) -> str:
+    """How a rating is stored in `interactions.feedback`."""
+    return f"difficulty:{difficulty}"
+
+
+def handle(conn, settings: Settings, llm, tagger, interaction_id: int, difficulty: int | None, signal: str | None,
+           note: str | None, now: datetime) -> dict:
+    """Log a rating (`difficulty` 1–5) or a repeat request (`signal="repeat"`) on a recall or explanation."""
     rec = db.get_interaction(conn, interaction_id)
     if rec is None or rec["kind"] not in ("recall", "explain"):
         raise KeyError(interaction_id)
-    if signal not in SIGNALS:
+    if difficulty is not None:
+        if difficulty not in DIFFICULTIES:
+            raise ValueError(f"difficulty must be 1 to 5, not {difficulty}")
+        signal = signal_for(difficulty)
+    elif signal != "repeat":
         raise ValueError(f"unknown signal {signal!r}")
 
     diagnosis = None
-    if signal == "lost_me":
+    if difficulty == LOST_ME:
         diagnosis = diagnose(llm, settings, rec, note)
         if diagnosis["kind"] in ("unfamiliar_term", "missing_prerequisite") and diagnosis.get("term"):
             # Tag the term or prerequisite onto the map (creating its node if needed).
@@ -56,5 +70,5 @@ def handle(conn, settings: Settings, llm, tagger, interaction_id: int, signal: s
     deltas = knowledge.apply_event(conn, settings, ev, now)
     db.log_interaction(conn, deltas=deltas, **ev)
     conn.commit()
-    return {"signal": signal, "deltas": deltas, "diagnosis": diagnosis,
+    return {"signal": signal, "difficulty": difficulty, "deltas": deltas, "diagnosis": diagnosis,
             "depth_preference": db.get_depth_pref(conn, knowledge.branch_of(conn, rec["node_id"]))}

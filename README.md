@@ -32,9 +32,9 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
   - **Listen** plays the audio script with the current word highlighted.
   - **Read + Listen** does the same, with the formatted recap folded underneath.
 - **Tap a word** in the script to jump there.
-- **Give feedback** on every recap or explanation with *Deeper*, *Simpler*, *Knew that* or *Lost me*. *Lost me* asks for an optional note and then diagnoses what was missing.
+- **Rate how hard it was** on every recap or explanation, from 1 (*knew it*, way too easy) through 3 (*spot on*) to 5 (*lost me*). Ratings update the map and move how deep the next recap on that branch goes. Only a 5 asks what was wrong (optional) and then diagnoses what was missing.
   - Replaying a recap with ↻, or saying "repeat", counts as a mild "too hard" signal.
-  - While a recap is on screen, the same words work as voice commands.
+  - While a recap is on screen, you can also rate by voice: "three", "rate it 4", "spot on", "too easy", "lost me".
 - **Next** chips are topics just past the edge of what you know. Tap one to have it explained.
 - **The quiz** runs on first use, and again whenever you press **Recalibrate** in the footer. It starts easy and adapts to your answers in each domain, and you can stop it at any time. There is no self-rating, to keep self-assessment bias out of the map.
   - *I don’t know* under a question shows the answer and counts as a wrong answer, which is better than guessing.
@@ -52,7 +52,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
 | `app/taxonomy.py` | Seeding, embeddings, lazy refinement (the LLM proposes children of a node) |
 | `app/tagging.py` | Top-down descent, LLM judge (node, mode, "more specific?"), refinement, session smoothing |
 | `app/recap.py` | Recall and explain prompts, the target level, and the audio-script prompt |
-| `app/feedback.py` | The four buttons and the *Lost me* diagnosis |
+| `app/feedback.py` | The 1–5 difficulty rating and the *lost me* diagnosis |
 | `app/quiz.py` | Item selection by Beta variance × breadth, adaptive difficulty, generation and grading |
 | `app/tts.py` | ElevenLabs `with-timestamps`, cached in `data/audio/` by content hash |
 | `app/embed.py` | Embedding interface: sentence-transformers, or a dependency-free hash embedder |
@@ -72,9 +72,10 @@ poetry run pytest tests
 
 - `test_mastery.py` covers the update rules, decay, aggregation, priors, frontier ranking, the difficulty staircase and the levels.
 - `test_flow.py` runs the acceptance criteria through the API, using fake Claude and ElevenLabs:
-  - after two "knew that", the next recap is more advanced
+  - after two "too easy" ratings, the next recap is more advanced
+  - ratings move mastery and the depth preference
   - an explanation is one level simpler than a recall of the same topic
-  - after "lost me", the next recap leads with the prerequisite
+  - after a 5 ("lost me"), the next recap leads with the prerequisite
   - a vague query tags shallow and a specific one tags deep
   - replaying the history rebuilds the map exactly
 - `test_llm.py` checks the shape of the Anthropic requests.
@@ -82,7 +83,7 @@ poetry run pytest tests
   - onboarding and the quiz
   - recap rendering with KaTeX
   - word highlighting moving with the audio
-  - feedback, modes and next-step chips
+  - the 1–5 scale (only a 5 asks what was wrong), modes and next-step chips
   - Explain beside Recall, and chips that explain
   - the theme switch
 

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS interactions(
   query TEXT, node_id INTEGER, mode TEXT,
   tag_dist TEXT,                            -- JSON
   response_md TEXT, audio_script TEXT, audio_path TEXT,
-  feedback TEXT NULL,                       -- the signal, or the quiz score
+  feedback TEXT NULL,                       -- difficulty:1..5 or repeat (older: the button), or the quiz score
   diagnosis TEXT NULL,                      -- JSON
   ref_id INTEGER NULL,                      -- feedback: the recall it is about; quiz: the quiz item
   deltas TEXT NULL                          -- JSON list of mastery changes applied (for the debug drawer)

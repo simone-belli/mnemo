@@ -28,6 +28,12 @@ def _b(name: str, default: bool) -> bool:
 @dataclass
 class Weights:
     """Mastery updates for each feedback signal (SPEC §6). Replaying uses these too."""
+    # The 1–5 difficulty rating (1 too easy, 3 spot on, 5 lost me), indexed by rating - 1.
+    # A 5's mastery change comes from its diagnosis (the lost_* weights below) instead.
+    rating_alpha: tuple[float, ...] = (1.0, 0.5, 0.25, 0.0, 0.0)
+    rating_beta: tuple[float, ...] = (0.0, 0.0, 0.0, 0.5, 0.0)
+    rating_depth: tuple[float, ...] = (0.5, 0.25, 0.0, -0.25, -0.5)   # depth-preference nudge
+    # Earlier versions had four buttons; their events still replay with these.
     knew_that: float = 1.0      # alpha
     deeper: float = 0.5         # alpha
     simpler: float = 0.5        # beta

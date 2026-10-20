@@ -68,9 +68,9 @@ text-to-speech voice. Same content, written for the ear:
 
 def depth_words(depth_pref: float) -> str:
     if depth_pref > 0.3:
-        return "She has been asking to go deeper on this branch: be more technical and advanced."
+        return "She has been rating recaps on this branch too easy: go deeper, be more technical and advanced."
     if depth_pref < -0.3:
-        return "She has been asking for simpler versions on this branch: be gentler and more concrete."
+        return "She has been rating recaps on this branch too hard: be simpler, gentler and more concrete."
     return ""
 
 

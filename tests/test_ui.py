@@ -112,14 +112,27 @@ def test_recall_renders_and_highlights(page):
     assert page.locator("#script .w.read").count() >= later
     # Next-step chips
     assert 2 <= page.locator("#chips button").count() <= 3
-    # Feedback: a button is acknowledged
-    page.click("#feedback [data-signal=knew_that]")
-    page.wait_for_selector("#feedback [data-signal=knew_that].done")
-    # Lost me asks for a note, then reports the diagnosis
-    page.click("#feedback [data-signal=lost_me]")
+    # Feedback: a 1–5 scale. A rating is acknowledged and locks the scale until the next recap.
+    assert page.locator("#feedback .scale button").count() == 5
+    page.click("#feedback [data-difficulty='3']")
+    page.wait_for_selector("#feedback [data-difficulty='3'].done")
+    assert page.is_disabled("#feedback [data-difficulty='1']")
+    assert "spot on" in page.text_content("#fb-result")
+    assert page.is_hidden("#lost")
+    # Only a 5 asks what was wrong, then reports the diagnosis
+    page.click("#go")
+    page.wait_for_selector("#feedback [data-difficulty='5']:not([disabled])")
+    page.click("#feedback [data-difficulty='4']")
+    page.wait_for_selector("#feedback [data-difficulty='4'].done")
+    assert page.is_hidden("#lost")
+    page.click("#go")
+    page.wait_for_selector("#feedback [data-difficulty='5']:not([disabled])")
+    page.click("#feedback [data-difficulty='5']")
+    page.wait_for_selector("#lost:not([hidden])")
     page.fill("#lost-note", "partition function")
     page.click("#lost button")
     page.wait_for_function("document.querySelector('#fb-result').textContent.includes('partition function')")
+    assert page.locator("#feedback .scale button.done").count() == 1
 
 
 def test_explain_button_and_chips_explain(page):

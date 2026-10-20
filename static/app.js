@@ -124,7 +124,7 @@
     buildScript(r.audio_script || '');
     $('card').hidden = false;
     $('card').dataset.mode = mode;
-    for (const b of document.querySelectorAll('#feedback button')) b.classList.remove('done', 'busy');
+    resetScale();
     $('lost').hidden = true;
     $('fb-result').textContent = '';
     showNext(r.next_steps || []);
@@ -309,7 +309,7 @@
   $('again').addEventListener('click', () => {      // asking for a repeat is an implicit signal
     unlockAudio();
     startAudio(true);
-    sendFeedback('repeat');
+    sendFeedback({ signal: 'repeat' });
   });
   $('seek').addEventListener('input', () => {
     if (isFinite(audio.duration)) audio.currentTime = ($('seek').value / 1000) * audio.duration;
@@ -330,18 +330,33 @@
   });
 
   // ======================================================================
-  // 6. Feedback: Deeper · Simpler · Knew that · Lost me (and repeat)
+  // 6. Feedback: how hard was it, 1 (too easy, I knew it) to 5 (lost me); and repeat.
+  //    One rating per recap. A 5 first asks what was wrong.
   // ======================================================================
-  const SIGNAL_LABEL = { deeper: 'Deeper', simpler: 'Simpler', knew_that: 'Knew that', lost_me: 'Lost me', repeat: 'Repeat' };
+  const RATING_LABEL = { 1: 'too easy', 2: 'a bit easy', 3: 'spot on', 4: 'a bit hard', 5: 'lost me' };
+  const scaleButtons = () => document.querySelectorAll('#feedback .scale button');
+  let rated = false;
 
-  async function sendFeedback(signal, note) {
+  function resetScale() {
+    rated = false;
+    $('feedback').querySelector('.scale').classList.remove('rated');
+    for (const b of scaleButtons()) { b.classList.remove('done', 'busy'); b.disabled = false; }
+  }
+
+  async function sendFeedback(body) {
     if (!current) return;
-    const btn = document.querySelector(`#feedback [data-signal="${signal}"]`);
-    if (btn) btn.classList.add('busy');
+    const btn = body.difficulty && document.querySelector(`#feedback [data-difficulty="${body.difficulty}"]`);
+    if (btn) {
+      rated = true;
+      $('feedback').querySelector('.scale').classList.add('rated');
+      for (const b of scaleButtons()) b.disabled = true;
+      btn.classList.add('busy');
+    }
     try {
-      const r = await api('/api/feedback', { interaction_id: current.interaction_id, signal, note: note || null });
+      const r = await api('/api/feedback', { interaction_id: current.interaction_id, note: null, ...body });
       if (btn) { btn.classList.remove('busy'); btn.classList.add('done'); }
-      let msg = signal === 'repeat' ? '' : `Noted: ${SIGNAL_LABEL[signal].toLowerCase()}.`;
+      let msg = body.difficulty ? `Noted: ${RATING_LABEL[body.difficulty]}.` : '';
+      if (body.difficulty && body.difficulty !== 3) msg += body.difficulty < 3 ? ' I’ll go further next time.' : ' I’ll go gentler next time.';
       if (r.diagnosis) {
         const d = r.diagnosis;
         msg = d.kind === 'missed_word' ? 'Noted: just a missed word.'
@@ -349,25 +364,31 @@
           : `Gap noted: ${d.term} (${d.kind.replace('_', ' ')}). The next recap will cover it first.`;
       }
       $('fb-result').textContent = msg;
-      appendDebug('feedback: ' + signal, { deltas: r.deltas, diagnosis: r.diagnosis, depth_preference: r.depth_preference });
+      appendDebug('feedback: ' + r.signal, { deltas: r.deltas, diagnosis: r.diagnosis, depth_preference: r.depth_preference });
     } catch (e) {
-      if (btn) btn.classList.remove('busy');
+      if (btn) resetScale();
       $('fb-result').textContent = 'Could not send feedback: ' + e.message;
     }
   }
 
-  document.querySelectorAll('#feedback button').forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.signal === 'lost_me') {
+  function rate(difficulty) {
+    if (!current || rated) return;
+    if (difficulty === 5) {                      // ask what was wrong before diagnosing
+      for (const b of scaleButtons()) b.classList.toggle('done', +b.dataset.difficulty === 5);
       $('lost').hidden = false;
       $('lost-note').focus();
     } else {
-      sendFeedback(b.dataset.signal);
+      $('lost').hidden = true;
+      for (const b of scaleButtons()) b.classList.remove('done');
+      sendFeedback({ difficulty });
     }
-  }));
+  }
+
+  scaleButtons().forEach((b) => b.addEventListener('click', () => rate(+b.dataset.difficulty)));
   $('lost').addEventListener('submit', (e) => {
     e.preventDefault();
     $('lost').hidden = true;
-    sendFeedback('lost_me', $('lost-note').value.trim());
+    sendFeedback({ difficulty: 5, note: $('lost-note').value.trim() });
     $('lost-note').value = '';
   });
 
@@ -395,14 +416,19 @@
 
   // ======================================================================
   // 8. Voice input (Web Speech API); falls back to the text box.
-  //    While a recap is on screen, "deeper", "simpler", "knew that", "lost me" and
-  //    "repeat" are feedback, not queries.
+  //    While a recap is on screen, a rating ("three", "rate it 4", "spot on", "too easy",
+  //    "lost me") and "repeat" are feedback, not queries.
   // ======================================================================
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const NUMBERS = { one: 1, two: 2, three: 3, four: 4, five: 5 };
   const COMMANDS = [
-    [/^(go )?deeper\.?$/i, 'deeper'], [/^simpler\.?$/i, 'simpler'], [/^(i )?knew that\.?$/i, 'knew_that'],
-    [/^(you )?lost me\.?$/i, 'lost_me'], [/^(repeat|again|say (that|it) again)\.?$/i, 'repeat']
+    [/^(i )?knew (that|it)|^(way |far )?too easy|^(go )?deeper/i, 1], [/^spot on|^(just )?right|^perfect/i, 3],
+    [/^(too hard|simpler)/i, 4], [/^(you )?lost me/i, 5], [/^(repeat|again|say (that|it) again)\.?$/i, 'repeat']
   ];
+  function spokenRating(text) {
+    const m = text.match(/^(?:rate it |rating |i'd say |a )?([1-5]|one|two|three|four|five)(?: out of (?:5|five))?\.?$/i);
+    return m ? (NUMBERS[m[1].toLowerCase()] || +m[1]) : null;
+  }
   if (!Recognition) {
     $('mic').hidden = true;
   } else {
@@ -428,11 +454,12 @@
 
   function handleSpoken(text) {
     if (current) {
-      for (const [re, signal] of COMMANDS) {
-        if (!re.test(text)) continue;
+      let signal = spokenRating(text);
+      for (const [re, s] of COMMANDS) if (signal === null && re.test(text)) signal = s;
+      if (signal !== null) {
         $('q').value = '';
-        if (signal === 'repeat') { startAudio(true); sendFeedback('repeat'); }
-        else sendFeedback(signal);
+        if (signal === 'repeat') { startAudio(true); sendFeedback({ signal: 'repeat' }); }
+        else rate(signal);
         return;
       }
     }
@@ -587,5 +614,5 @@
     }
   })();
   // test hook
-  window.mnemo = { get current() { return current; }, audio, recall, sendFeedback };
+  window.mnemo = { get current() { return current; }, audio, recall, rate };
 })();

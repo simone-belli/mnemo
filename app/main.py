@@ -70,8 +70,9 @@ class AudioIn(BaseModel):
 
 class FeedbackIn(BaseModel):
     interaction_id: int
-    signal: str
-    note: str | None = None
+    difficulty: int | None = None    # 1 too easy · 3 spot on · 5 lost me
+    signal: str | None = None        # "repeat", the implicit signal
+    note: str | None = None          # what was wrong, with a 5
 
 
 class AnswerIn(BaseModel):
@@ -195,8 +196,8 @@ def create_app(svc: Services | None = None) -> FastAPI:
     def give_feedback(body: FeedbackIn):
         with svc.db() as conn:
             try:
-                return feedback.handle(conn, s, svc.llm, svc.tagger, body.interaction_id, body.signal, body.note,
-                                       knowledge.utcnow())
+                return feedback.handle(conn, s, svc.llm, svc.tagger, body.interaction_id, body.difficulty,
+                                       body.signal, body.note, knowledge.utcnow())
             except KeyError:
                 raise HTTPException(404, "no such recall")
             except ValueError as e:

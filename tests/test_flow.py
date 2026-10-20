@@ -30,6 +30,19 @@ def legacy_rating(svc, ratings):
         conn.commit()
 
 
+def legacy_feedback(svc, interaction_id, signals):
+    """Button feedback as older versions logged it (Deeper, Simpler, Knew that, Lost me): it must still replay."""
+    with svc.db() as conn:
+        rec = db.get_interaction(conn, interaction_id)
+        for signal in signals:
+            now = knowledge.utcnow()
+            diagnosis = json.dumps({"kind": "genuine_gap"}) if signal == "lost_me" else None
+            ev = {"kind": "feedback", "query": rec["query"], "node_id": rec["node_id"], "mode": rec["mode"],
+                  "feedback": signal, "diagnosis": diagnosis, "ref_id": interaction_id, "ts": knowledge.iso(now)}
+            db.log_interaction(conn, deltas=knowledge.apply_event(conn, svc.settings, ev, now), **ev)
+        conn.commit()
+
+
 def node_by_name(svc, name):
     with svc.db() as conn:
         return conn.execute("SELECT * FROM nodes WHERE name=?", (name,)).fetchone()
@@ -67,15 +80,21 @@ def test_read_mode_skips_audio_until_asked(svc, client):
     assert a["audio_script"] and a["audio_url"]
 
 
-def test_knew_that_twice_makes_next_recap_more_advanced(svc, client):
+def rate(client, interaction_id, difficulty, **kw):
+    r = client.post("/api/feedback", json={"interaction_id": interaction_id, "difficulty": difficulty, **kw})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def test_too_easy_twice_makes_next_recap_more_advanced(svc, client):
     q = "remind me about statistical mechanics"
     first = recall(client, q)
     mode = first["mode"]
     assert first["debug"]["profile"]["node"]["mastery_by_mode"][mode]["mean"] == 0.5
     assert "Level: intermediate" in first["text_md"]
     for _ in range(2):
-        fb = client.post("/api/feedback", json={"interaction_id": first["interaction_id"], "signal": "knew_that"}).json()
-        assert fb["deltas"][0]["d_alpha"] == 1.0
+        fb = rate(client, first["interaction_id"], 1)
+        assert fb["deltas"][0]["d_alpha"] == 1.0 and fb["signal"] == "difficulty:1"
     assert fb["deltas"][0]["after"] == pytest.approx(0.75)
     again = recall(client, q)
     assert again["node_id"] == first["node_id"]
@@ -87,8 +106,7 @@ def test_knew_that_twice_makes_next_recap_more_advanced(svc, client):
 def test_lost_me_logs_prerequisite_and_next_recap_covers_it(svc, client):
     q = "remind me about Renaissance painting"
     r = recall(client, q)
-    fb = client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "lost_me",
-                                            "note": "linear perspective"}).json()
+    fb = rate(client, r["interaction_id"], 5, note="linear perspective")
     d = fb["diagnosis"]
     assert d["kind"] == "missing_prerequisite" and d["term"] == "linear perspective"
     assert d["target_node_id"] and fb["deltas"][0]["node_id"] == d["target_node_id"]
@@ -99,23 +117,34 @@ def test_lost_me_logs_prerequisite_and_next_recap_covers_it(svc, client):
     again = recall(client, q)
     assert again["debug"]["profile"]["recent_gaps"][0]["term"] == "linear perspective"
     assert again["text_md"].startswith("**First, linear perspective.**")
+    assert again["debug"]["profile"]["depth_preference"] == -0.5          # too hard: pitch gentler
 
 
-def test_simpler_and_deeper_move_depth_preference(svc, client):
+def test_ratings_move_mastery_and_depth_preference(svc, client):
     r = recall(client, "remind me about statistical mechanics")
     for _ in range(2):
-        fb = client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "deeper"}).json()
+        fb = rate(client, r["interaction_id"], 2)
+        assert fb["deltas"][0]["d_alpha"] == 0.5
     assert fb["depth_preference"] == 0.5
     again = recall(client, "remind me about statistical mechanics")
     assert "go deeper" in again["debug"]["user_prompt"]
-    fb = client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "simpler"}).json()
+    fb = rate(client, r["interaction_id"], 3)                              # spot on: a little known, same pitch
+    assert fb["depth_preference"] == 0.5 and fb["deltas"][0]["d_alpha"] == 0.25 and fb["diagnosis"] is None
+    fb = rate(client, r["interaction_id"], 4)
     assert fb["depth_preference"] == 0.25 and fb["deltas"][0]["d_beta"] == 0.5
+    for _ in range(2):
+        fb = rate(client, r["interaction_id"], 4)
+    assert fb["depth_preference"] == -0.25
+    fb = rate(client, r["interaction_id"], 1)
+    assert fb["depth_preference"] == 0.25 and fb["deltas"][0]["d_alpha"] == 1.0
 
 
 def test_bad_feedback(client):
     r = recall(client, "remind me about statistical mechanics")
-    assert client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "meh"}).status_code == 400
-    assert client.post("/api/feedback", json={"interaction_id": 999, "signal": "deeper"}).status_code == 404
+    for body in ({"signal": "meh"}, {"signal": "deeper"}, {"difficulty": 0}, {"difficulty": 6}, {}):
+        assert client.post("/api/feedback", json={"interaction_id": r["interaction_id"], **body}).status_code == 400
+    assert client.post("/api/feedback", json={"interaction_id": 999, "difficulty": 3}).status_code == 404
+    assert client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "repeat"}).status_code == 200
 
 
 def test_vague_query_shallow_specific_query_deep(svc, client):
@@ -147,8 +176,7 @@ def test_explain_is_one_level_simpler_and_a_mild_signal(svc, client):
     with svc.db() as conn:
         assert db.get_interaction(conn, e["interaction_id"])["kind"] == "explain"
     # An explanation takes feedback and audio like a recap.
-    fb = client.post("/api/feedback", json={"interaction_id": e["interaction_id"], "signal": "knew_that"})
-    assert fb.status_code == 200 and fb.json()["deltas"][0]["d_alpha"] == 1.0
+    assert rate(client, e["interaction_id"], 1)["deltas"][0]["d_alpha"] == 1.0
     assert client.post("/api/audio", json={"interaction_id": e["interaction_id"]}).json()["audio_url"]
     assert client.get("/api/state").json()["recalls"] == 2
     assert client.post("/api/recall", json={"query": q, "intent": "summarise"}).status_code == 422
@@ -251,11 +279,13 @@ def test_map_rebuilds_from_interactions(svc, client):
     """SPEC §12: the whole map can be rebuilt by replaying `interactions`."""
     legacy_rating(svc, {"nature": 4, "society": 2})
     r = recall(client, "remind me about statistical mechanics")
-    for signal in ("knew_that", "deeper", "repeat", "simpler"):
-        client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": signal})
+    for difficulty in (1, 2, 3, 4):
+        rate(client, r["interaction_id"], difficulty)
+    client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": "repeat"})
     explain(client, "remind me about statistical mechanics")
     r2 = recall(client, "Brunelleschi's perspective experiment")
-    client.post("/api/feedback", json={"interaction_id": r2["interaction_id"], "signal": "lost_me", "note": "vanishing point"})
+    rate(client, r2["interaction_id"], 5, note="vanishing point")
+    legacy_feedback(svc, r["interaction_id"], ("knew_that", "deeper", "simpler", "lost_me"))
     item = client.get("/api/quiz/next").json()
     r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": "0"}).json()
     client.post("/api/quiz/answer", json={"item_id": r["next"]["item_id"], "dont_know": True})

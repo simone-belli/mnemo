@@ -16,7 +16,7 @@ This is a personal tool for one user (me), not a product. Keep the code simple, 
 - **Explain:** the same flow, but the answer is an explanation pitched one level simpler than a recall (§5).
 - **Knowledge map:** a hierarchical topic tree, crossed with five modes of knowing. Each cell holds a mastery estimate that has uncertainty and decays over time.
 - **Tagging:** every query is mapped onto the tree, at the right depth and mode.
-- **Feedback loop:** four buttons that update the map: *deeper*, *simpler*, *knew that*, *lost me*.
+- **Feedback loop:** a 1–5 difficulty rating that updates the map: 1 *too easy, I knew it*, 3 *spot on*, 5 *lost me*.
 - **Onboarding quiz:** a short adaptive test that seeds the map.
 - **Next steps:** two or three suggested topics just past my frontier.
 
@@ -134,7 +134,7 @@ Recall and Explain share one flow; only the target level and the prompt's intent
    - the parent's and siblings' mastery (what I know around it)
    - its children (what's below it), with mastery
    - recent "lost me" events on this branch, with the diagnosed gaps
-   - my depth preference for this branch (from *deeper* and *simpler* feedback)
+   - my depth preference for this branch (from the difficulty ratings)
 3. **Generate the text** (recap model) at the target level (below). Default length is 120 to 180 words. Use Markdown, and LaTeX where it helps (I'm a physicist, so formulas are welcome, not scary). A recall is pitched one step past my edge: compress what I already know into a line, then spend most of the words on the next layer. An explanation is pitched one level simpler and builds the idea up.
 4. **Generate the audio script** with a *separate* call. It's the same content written for the ear: short sentences, verbal signposting, formulas described in words, and no Markdown.
 5. **TTS** on the audio script, using ElevenLabs with timestamps. Cache the audio by content hash in `data/audio/`.
@@ -169,19 +169,22 @@ The user prompt carries the query, the intent, the mode hint, `Pitch: <level>: <
 
 ## 6. Feedback loop
 
-The UI shows four buttons under every recap and explanation (voice commands work too): **Deeper**, **Simpler**, **Knew that**, **Lost me**. Asking for a repeat counts as an implicit signal.
+The UI asks *How hard was that?* under every recap and explanation, on a scale from 1 to 5 (voice commands work too): **1** knew it (way too easy), **2** easy, **3** spot on, **4** hard, **5** lost me. There is one rating per recap. Only a 5 opens a box asking what was wrong (optional) before it is sent. Asking for a repeat counts as an implicit signal.
+
+A rating does two things: it moves the mastery of the primary cell, and it nudges this branch's **depth preference**, which tells the next recap to go deeper or gentler.
 
 | Signal | Update |
 |---|---|
-| Knew that | `α += 1.0` on the primary cell |
-| Deeper | `α += 0.5`, and nudge this branch's depth preference up |
-| Simpler | `β += 0.5`, and nudge the depth preference down |
-| Lost me | Run a **diagnosis** call (fast model): was it a missed word, an unfamiliar term, or a missing prerequisite? Unfamiliar term → `β += 0.5` on the node for that term (tag it). Missing prerequisite → `β += 1.0` on the prerequisite node (tag it, create it if needed). Only lower the whole subtopic when it's a genuine gap. Log the diagnosis for the profile context. |
+| 1 · knew it | `α += 1.0`, depth preference `+0.5` |
+| 2 · easy | `α += 0.5`, depth preference `+0.25` |
+| 3 · spot on | `α += 0.25` (understood at that pitch), depth preference unchanged |
+| 4 · hard | `β += 0.5`, depth preference `−0.25` |
+| 5 · lost me | Run a **diagnosis** call (fast model) on the recap and the note: was it a missed word, an unfamiliar term, or a missing prerequisite? Unfamiliar term → `β += 0.5` on the node for that term (tag it). Missing prerequisite → `β += 1.0` on the prerequisite node (tag it, create it if needed). Only lower the whole subtopic when it's a genuine gap. Depth preference `−0.5`, except for a missed word. Log the diagnosis for the profile context. |
 | Repeat request | `β += 0.25` on the primary cell |
 | Asked to recall it | No mastery change. Update `last_seen` only. |
 | Asked to explain it | `β += 0.25` on the primary cell: a mild sign it isn't fully known |
 
-Weights live in config. Every event is stored in `interactions` so the map can be rebuilt from scratch, and the weights can be tuned later by replaying the history.
+Weights live in config. Earlier versions had four buttons (*Deeper*, *Simpler*, *Knew that*, *Lost me*); their events still replay. Every event is stored in `interactions` so the map can be rebuilt from scratch, and the weights can be tuned later by replaying the history.
 
 ---
 
@@ -222,7 +225,7 @@ quiz_items(id INTEGER PK, node_id INTEGER, mode TEXT, difficulty REAL,
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/recall` | `{query, intent?}` returns the recap or explanation payload (§5) |
-| POST | `/api/feedback` | `{interaction_id, signal, note?}` |
+| POST | `/api/feedback` | `{interaction_id, difficulty: 1–5, note?}`, or `{interaction_id, signal: "repeat"}` |
 | GET | `/api/quiz/next` | returns the next item |
 | POST | `/api/quiz/answer` | `{item_id, answer}` returns the score and next item |
 | GET | `/api/map?node_id=` | returns a node, its children, and mastery (for debugging) |
@@ -242,7 +245,7 @@ A single page, mobile-friendly first: I'll use it from my iPhone as much as from
   - a breadcrumb showing the tagged path (e.g. *artefacts › art › painting › Renaissance*) with the mode as a small chip, and an outlined chip with the intent and level (*explain · introductory*)
   - the rendered Markdown and KaTeX
   - an audio player with synced word highlighting (port this from Read Along)
-- **Feedback row:** Deeper · Simpler · Knew that · Lost me. Each button is at least 44 px tall and acknowledged with a subtle state change.
+- **Feedback scale:** *How hard was that?* 1 Knew it · 2 Easy · 3 Spot on · 4 Hard · 5 Lost me. Each button is at least 44 px tall; the chosen one is filled and the others dim. A 5 opens the *What was wrong?* box.
 - **Next steps:** two or three chips under the card. They are past my edge, so tapping one explains it.
 - **Footer:** Recalibrate, the theme switch, and the motto.
 - **First run:** the quiz flow (questions with a progress bar, an "I don't know" link and a "stop and start using Mnemo" link).
@@ -270,7 +273,7 @@ Build them in this order, and each one should be usable on its own:
 
 1. **Skeleton:** FastAPI + `index.html`. Recall calls Claude with no profile and renders the Markdown + KaTeX.
 2. **Taxonomy + tagging:** the seed tree, embeddings, top-down descent, the LLM judge, the breadcrumb in the UI, and the debug drawer.
-3. **Mastery + feedback:** the Beta cells, decay, aggregation, the four buttons, the profile context in the prompt, and lost-me diagnosis.
+3. **Mastery + feedback:** the Beta cells, decay, aggregation, the difficulty rating, the profile context in the prompt, and lost-me diagnosis.
 4. **Audio:** the ear-written script, ElevenLabs timestamps, caching, the three modes, and synced highlighting.
 5. **Onboarding quiz:** adaptive items and grading.
 6. **Next steps + lazy refinement:** frontier suggestions and on-demand child creation.
@@ -282,7 +285,7 @@ Build them in this order, and each one should be usable on its own:
 - I can ask "remind me about Renaissance painting" on my phone and hear and read a recap in under 20 seconds (cold) or under 5 seconds (cached audio).
 - After I say "knew that" twice on a topic, the next recap on it is visibly more advanced: the debug drawer shows the mastery change, and the prompt reflects it.
 - Explaining a topic gives an answer one level simpler than recalling it, and the debug drawer shows both levels.
-- "Lost me" on a recap that relies on an unfamiliar prerequisite logs a diagnosis that names that prerequisite, and the next recap covers it first.
+- A 5 ("lost me") on a recap that relies on an unfamiliar prerequisite logs a diagnosis that names that prerequisite, and the next recap covers it first.
 - A vague query ("tell me about art") tags at a shallow depth. A specific one ("Brunelleschi's perspective experiment") tags deep, creating nodes if needed.
 - `mastery.py` has unit tests for the update rules, decay, aggregation and the frontier ranking.
 - The whole map can be rebuilt by replaying `interactions`.

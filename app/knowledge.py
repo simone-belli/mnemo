@@ -118,6 +118,13 @@ def deltas_for(conn, ev: dict, w: Weights) -> tuple[list[tuple[int, str, float, 
         return [(node, mode, 0.0, w.explain)], 0.0
     if kind == "feedback":
         signal = ev["feedback"]
+        if signal.startswith("difficulty:"):
+            r = int(signal.split(":")[1]) - 1
+            if r < 4:
+                return [(node, mode, w.rating_alpha[r], w.rating_beta[r])], w.rating_depth[r]
+            changes = lost_me_deltas(node, mode, diag, w)
+            # Too hard, so pitch lower next time, unless it was only a missed word.
+            return changes, (w.rating_depth[r] if diag.get("kind") != "missed_word" else 0.0)
         if signal == "knew_that":
             return [(node, mode, w.knew_that, 0.0)], 0.0
         if signal == "deeper":
@@ -127,14 +134,7 @@ def deltas_for(conn, ev: dict, w: Weights) -> tuple[list[tuple[int, str, float, 
         if signal == "repeat":
             return [(node, mode, 0.0, w.repeat)], 0.0
         if signal == "lost_me":
-            k, target = diag.get("kind"), diag.get("target_node_id")
-            if k == "unfamiliar_term" and target:
-                return [(target, diag.get("target_mode") or mode, 0.0, w.lost_term)], 0.0
-            if k == "missing_prerequisite" and target:
-                return [(target, diag.get("target_mode") or mode, 0.0, w.lost_prereq)], 0.0
-            if k == "genuine_gap":
-                return [(node, mode, 0.0, w.lost_gap)], 0.0
-            return [], 0.0                       # a missed word: nothing to learn about the map
+            return lost_me_deltas(node, mode, diag, w), 0.0
     if kind == "quiz":
         score = float(ev["feedback"])
         da, dbeta = mastery.quiz_delta(score, diag.get("difficulty", 0.5))
@@ -152,6 +152,18 @@ def deltas_for(conn, ev: dict, w: Weights) -> tuple[list[tuple[int, str, float, 
             out += [(int(root_id), m, da, dbeta) for m in MODES]
         return out, 0.0
     return [], 0.0
+
+
+def lost_me_deltas(node: int, mode: str, diag: dict, w: Weights) -> list[tuple[int, str, float, float]]:
+    """What a "lost me" diagnosis lowers: the unknown term, the missing prerequisite, or the cell itself."""
+    k, target = diag.get("kind"), diag.get("target_node_id")
+    if k == "unfamiliar_term" and target:
+        return [(target, diag.get("target_mode") or mode, 0.0, w.lost_term)]
+    if k == "missing_prerequisite" and target:
+        return [(target, diag.get("target_mode") or mode, 0.0, w.lost_prereq)]
+    if k == "genuine_gap":
+        return [(node, mode, 0.0, w.lost_gap)]
+    return []                                    # a missed word: nothing to learn about the map
 
 
 def apply_event(conn, settings: Settings, ev: dict, now: datetime) -> list[dict]:
@@ -187,7 +199,7 @@ def recent_gaps(conn, node_id: int, days: int = 60, limit: int = 5) -> list[dict
     ancestors = {n["id"] for n in db.path(conn, node_id)}
     since = iso(utcnow() - timedelta(days=days))
     out = []
-    for r in conn.execute("SELECT * FROM interactions WHERE kind='feedback' AND feedback='lost_me' "
+    for r in conn.execute("SELECT * FROM interactions WHERE kind='feedback' AND feedback IN ('lost_me', 'difficulty:5') "
                           "AND diagnosis IS NOT NULL AND ts >= ? ORDER BY id DESC", (since,)):
         if r["node_id"] is None:
             continue

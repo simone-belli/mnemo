@@ -91,14 +91,18 @@
         <div id="recap" class="md"></div>
       </details>
 
-      <div id="feedback" class="feedback">
-        <button type="button" data-signal="deeper">Deeper</button>
-        <button type="button" data-signal="simpler">Simpler</button>
-        <button type="button" data-signal="knew_that">Knew that</button>
-        <button type="button" data-signal="lost_me">Lost me</button>
+      <div id="feedback" class="feedback" role="group" aria-labelledby="fb-label">
+        <p id="fb-label" class="fb-label">How hard was that?</p>
+        <div class="scale">
+          <button type="button" data-difficulty="1" aria-label="1: too easy, I knew it"><b>1</b><small>Knew it</small></button>
+          <button type="button" data-difficulty="2" aria-label="2: a bit easy"><b>2</b><small>Easy</small></button>
+          <button type="button" data-difficulty="3" aria-label="3: spot on"><b>3</b><small>Spot on</small></button>
+          <button type="button" data-difficulty="4" aria-label="4: a bit hard"><b>4</b><small>Hard</small></button>
+          <button type="button" data-difficulty="5" aria-label="5: lost me"><b>5</b><small>Lost me</small></button>
+        </div>
       </div>
       <form id="lost" class="row" hidden>
-        <input id="lost-note" type="text" placeholder="What lost you? (optional)" aria-label="What lost you">
+        <input id="lost-note" type="text" placeholder="What was wrong? (optional)" aria-label="What was wrong">
         <button type="submit" class="primary">Send</button>
       </form>
       <p id="fb-result" class="result"></p>
