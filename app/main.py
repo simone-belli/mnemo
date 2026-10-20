@@ -78,10 +78,6 @@ class AnswerIn(BaseModel):
     dont_know: bool = False
 
 
-class RatingIn(BaseModel):
-    ratings: dict[str, int]
-
-
 # ---------------------------------------------------------------- the app
 
 def create_app(svc: Services | None = None) -> FastAPI:
@@ -220,8 +216,7 @@ def create_app(svc: Services | None = None) -> FastAPI:
             try:
                 out = quiz.answer(conn, s, svc.llm, body.item_id, body.answer, knowledge.utcnow(),
                                   dont_know=body.dont_know)
-                done = conn.execute(
-                    "SELECT count(*) FROM quiz_items WHERE score IS NOT NULL").fetchone()[0] >= s.quiz_target
+                done = quiz.round_answered(conn) >= s.quiz_target
                 out["next"] = None if done else quiz.next_item(conn, s, svc.llm, svc.embedder, knowledge.utcnow())
                 return out
             except KeyError:
@@ -231,10 +226,11 @@ def create_app(svc: Services | None = None) -> FastAPI:
             except LLMError as e:
                 fail(e)
 
-    @app.post("/api/quiz/rating")
-    def quiz_rating(body: RatingIn):
+    @app.post("/api/quiz/start")
+    def quiz_start():
         with svc.db() as conn:
-            return {"deltas": quiz.rate(conn, s, body.ratings, knowledge.utcnow())}
+            quiz.start_round(conn)
+            return {"ok": True}
 
     # ------------------------------------------------------------ map and next steps
 
@@ -244,9 +240,7 @@ def create_app(svc: Services | None = None) -> FastAPI:
             count = lambda sql: conn.execute(sql).fetchone()[0]  # noqa: E731
             return {"recalls": count("SELECT count(*) FROM interactions WHERE kind='recall'"),
                     "quiz_answered": count("SELECT count(*) FROM quiz_items WHERE score IS NOT NULL"),
-                    "rated": count("SELECT count(*) FROM interactions WHERE kind='rating'") > 0,
-                    "quiz_target": s.quiz_target, "tts": svc.tts.name if svc.tts.available else None,
-                    "roots": [{"name": r["name"], "description": r["description"]} for r in db.children(conn, None)]}
+                    "quiz_target": s.quiz_target, "tts": svc.tts.name if svc.tts.available else None}
 
     @app.get("/api/map")
     def map_node(node_id: int | None = Query(None)):

@@ -68,9 +68,6 @@ def page(server):
 
 def test_first_run_onboarding_then_quiz(page, svc):
     page.wait_for_selector("#onboarding:not([hidden])")
-    assert page.locator(".rating").count() == 6
-    page.fill("#ratings input >> nth=1", "5")
-    page.click("#rate-go")
     page.wait_for_selector("#quiz-options button")
     with svc.db() as conn:
         right = conn.execute("SELECT answer FROM quiz_items WHERE score IS NULL").fetchone()["answer"]
@@ -85,7 +82,6 @@ def test_first_run_onboarding_then_quiz(page, svc):
 
 def test_quiz_dont_know_reveals_the_answer(page):
     page.wait_for_selector("#onboarding:not([hidden])")
-    page.click("#rate-skip")
     page.wait_for_selector("#quiz-options button")
     page.click("#quiz-idk")
     page.wait_for_selector("#quiz-next:not([hidden])")
@@ -98,7 +94,6 @@ def test_quiz_dont_know_reveals_the_answer(page):
 
 def test_recall_renders_and_highlights(page):
     page.wait_for_selector("#onboarding:not([hidden])")
-    page.click("#rate-skip")
     page.click("#quiz-stop")
     page.click(".modes [data-mode=both]")
     page.fill("#q", "remind me about statistical mechanics")
@@ -129,7 +124,6 @@ def test_recall_renders_and_highlights(page):
 
 def test_modes_are_remembered(page):
     page.wait_for_selector("#onboarding:not([hidden])")
-    page.click("#rate-skip")
     page.click("#quiz-stop")
     page.click(".modes [data-mode=read]")
     page.fill("#q", "remind me about statistical mechanics")
@@ -146,7 +140,6 @@ def test_modes_are_remembered(page):
 
 def test_chip_runs_a_recall(page):
     page.wait_for_selector("#onboarding:not([hidden])")
-    page.click("#rate-skip")
     page.click("#quiz-stop")
     page.fill("#q", "tell me about art")
     page.click("#go")

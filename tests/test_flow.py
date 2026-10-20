@@ -1,4 +1,6 @@
 """End-to-end API tests with fake Claude/ElevenLabs (SPEC §12 acceptance criteria, where testable offline)."""
+import json
+
 import pytest
 
 from app import db, knowledge, quiz
@@ -10,6 +12,18 @@ def recall(client, query, **kw):
     r = client.post("/api/recall", json={"query": query, "session_id": "t", **kw})
     assert r.status_code == 200, r.text
     return r.json()
+
+
+def legacy_rating(svc, ratings):
+    """A self-rating event as older versions logged it: the screen is gone, but existing
+    histories still hold them and must replay."""
+    with svc.db() as conn:
+        roots = {n["name"]: n["id"] for n in db.children(conn, None)}
+        now = knowledge.utcnow()
+        ev = {"kind": "rating", "node_id": None, "mode": None, "ts": knowledge.iso(now),
+              "diagnosis": json.dumps({"ratings": {str(roots[k]): v for k, v in ratings.items()}})}
+        db.log_interaction(conn, deltas=knowledge.apply_event(conn, svc.settings, ev, now), **ev)
+        conn.commit()
 
 
 def node_by_name(svc, name):
@@ -116,7 +130,7 @@ def test_vague_query_shallow_specific_query_deep(svc, client):
 
 
 def test_next_steps_follow_the_frontier(svc, client):
-    client.post("/api/quiz/rating", json={"ratings": {"nature": 5}})
+    legacy_rating(svc, {"nature": 5})
     nature = node_by_name(svc, "nature")
     steps = client.get(f"/api/next-steps?node_id={nature['id']}").json()["next_steps"]
     assert len(steps) == 3
@@ -129,9 +143,9 @@ def correct_option(svc, item_id: int) -> str:
 
 
 def test_quiz_flow(svc, client):
-    client.post("/api/quiz/rating", json={"ratings": {"formal": 4, "nature": 5, "artefacts": 2}})
     item = client.get("/api/quiz/next").json()
     assert item["options"] and len(item["options"]) == 4 and item["progress"] == {"answered": 0, "target": 20}
+    assert item["difficulty"] == 0.25                                 # starts easy
     assert "true one" not in " ".join(item["options"]).lower()      # a real question from the offline bank
     assert client.get("/api/quiz/next").json()["item_id"] == item["item_id"]       # unanswered item is reused
     right = correct_option(svc, item["item_id"])
@@ -142,14 +156,27 @@ def test_quiz_flow(svc, client):
     assert client.post("/api/quiz/answer", json={"item_id": item["item_id"], "answer": right}).status_code == 409
     nxt = r["next"]
     assert nxt["progress"]["answered"] == 1 and nxt["item_id"] != item["item_id"]
+    assert nxt["difficulty"] == 0.35                                  # right answer: one step harder
     wrong = str((int(correct_option(svc, nxt["item_id"])) + 1) % 4)
     r = client.post("/api/quiz/answer", json={"item_id": nxt["item_id"], "answer": wrong}).json()
     assert r["score"] == 0.0 and r["deltas"][0]["d_beta"] > 0
     free = r["next"]                                                  # every third item is free text
-    assert free["options"] is None
+    assert free["options"] is None and free["difficulty"] < 0.35       # wrong answer: easier again
     model_answer = correct_option(svc, free["item_id"])
     r = client.post("/api/quiz/answer", json={"item_id": free["item_id"], "answer": model_answer}).json()
     assert r["score"] == 1.0 and r["correct"] == model_answer
+
+
+def test_recalibrate_starts_a_new_round(svc, client):
+    item = client.get("/api/quiz/next").json()
+    r = client.post("/api/quiz/answer", json={"item_id": item["item_id"], "dont_know": True}).json()
+    assert r["next"]["progress"]["answered"] == 1
+    assert client.post("/api/quiz/start").status_code == 200
+    item = client.get("/api/quiz/next").json()
+    assert item["progress"]["answered"] == 0
+    assert item["difficulty"] == 0.1                                  # the level carries over from before
+    svc.settings.quiz_target = 1
+    assert client.post("/api/quiz/answer", json={"item_id": item["item_id"], "dont_know": True}).json()["next"] is None
 
 
 def test_quiz_dont_know_scores_zero_without_grading(svc, client):
@@ -197,7 +224,7 @@ def test_map_endpoint(svc, client):
 
 def test_map_rebuilds_from_interactions(svc, client):
     """SPEC §12: the whole map can be rebuilt by replaying `interactions`."""
-    client.post("/api/quiz/rating", json={"ratings": {"nature": 4, "society": 2}})
+    legacy_rating(svc, {"nature": 4, "society": 2})
     r = recall(client, "remind me about statistical mechanics")
     for signal in ("knew_that", "deeper", "repeat", "simpler"):
         client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": signal})

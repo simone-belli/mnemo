@@ -435,53 +435,36 @@
   }
 
   // ======================================================================
-  // 9. Onboarding: self-rating, then the adaptive quiz
+  // 9. Onboarding: the adaptive quiz (first run and Recalibrate). It starts easy and follows
+  //    the answers; there is no self-rating, to keep the calibration free of self-assessment bias.
   // ======================================================================
   let quizItem = null;
 
-  function showOnboarding(roots) {
+  async function startQuiz() {
     $('card').hidden = true;
     $('next').hidden = true;
     $('onboarding').hidden = false;
-    $('rate-step').hidden = false;
-    $('quiz-step').hidden = true;
-    const box = $('ratings');
-    box.textContent = '';
-    for (const r of roots) {
-      const row = document.createElement('div');
-      row.className = 'rating';
-      row.innerHTML = `<label for="r-${esc(r.name)}">${esc(r.name)}</label><output>3</output>
-        <input type="range" min="1" max="5" step="1" value="3" id="r-${esc(r.name)}" data-root="${esc(r.name)}">
-        <small>${esc(r.description)}</small>`;
-      const input = row.querySelector('input');
-      input.addEventListener('input', () => { row.querySelector('output').textContent = input.value; });
-      box.appendChild(row);
-    }
+    $('quiz-q').textContent = '';
+    $('quiz-options').textContent = '';
+    $('quiz-free').hidden = true;
+    $('quiz-idk').hidden = true;
+    $('quiz-next').hidden = true;
+    $('quiz-result').textContent = '';
+    $('quiz-bar').style.width = '0%';
+    status('Writing a question…', { timer: true });
+    try {
+      await api('/api/quiz/start', {});
+      showItem(await api('/api/quiz/next'));
+      status('');
+    } catch (e) { status('Quiz unavailable: ' + e.message, { error: true }); }
   }
 
-  $('rate-go').addEventListener('click', async () => {
-    const ratings = {};
-    for (const i of document.querySelectorAll('#ratings input')) ratings[i.dataset.root] = +i.value;
-    try { await api('/api/quiz/rating', { ratings }); } catch (e) { status(e.message, { error: true }); }
-    startQuiz();
-  });
-  $('rate-skip').addEventListener('click', startQuiz);
   $('quiz-stop').addEventListener('click', finishOnboarding);
-  $('recalibrate').addEventListener('click', async () => {
+  $('recalibrate').addEventListener('click', () => {
     stopAudio();
-    const st = await api('/api/state');
-    showOnboarding(st.roots);
+    startQuiz();
     scrollTo({ top: 0 });
   });
-
-  async function startQuiz() {
-    $('rate-step').hidden = true;
-    $('quiz-step').hidden = false;
-    $('quiz-q').textContent = '';
-    status('Writing a question…', { timer: true });
-    try { showItem(await api('/api/quiz/next')); status(''); }
-    catch (e) { status('Quiz unavailable: ' + e.message, { error: true }); }
-  }
 
   function showItem(item) {
     quizItem = item;
@@ -592,8 +575,8 @@
   (async () => {
     try {
       const st = await api('/api/state');
-      const fresh = st.recalls === 0 && st.quiz_answered === 0 && !st.rated && !store.get('onboarded');
-      if (fresh) showOnboarding(st.roots);
+      const fresh = st.recalls === 0 && st.quiz_answered === 0 && !store.get('onboarded');
+      if (fresh) startQuiz();
     } catch (e) {
       status('Mnemo’s server is not answering: ' + e.message, { error: true });
     }
