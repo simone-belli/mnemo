@@ -187,11 +187,12 @@ Weights live in config. Every event is stored in `interactions` so the map can b
 
 - Target **15 to 25 questions** in about 10 minutes, which can be stopped at any time.
 - **Item selection:** choose the (node, mode) cell with the highest expected information gain. For v0, the highest Beta variance weighted by node breadth is fine. Start at the second level of the tree, and go one level deeper wherever answers are strong.
-- **Item generation:** the fast model writes one question for the cell at a target difficulty. Mix multiple choice (4 options) with short free text.
+- **Item generation:** the fast model writes one question for the cell at a target difficulty. Mix multiple choice (4 options) with short free text. Difficulty is absolute, on a scale with concrete anchors in the prompt (0 is general knowledge, 1 a specialist).
+- **Adaptive difficulty:** a staircase per root domain. It starts easy (0.25). A right answer moves it up 0.1, a wrong one or *I don't know* down 0.15, and partial credit in between, so it settles where about 60% of answers are right. A domain's first question starts at the overall level reached so far.
 - **Grading:** multiple choice is graded exactly. Free text is graded by the fast model on a 0 to 1 scale with a one-line rationale. Update with `α += score`, `β += 1 − score`, scaled by item difficulty.
 - **Correlation spread:** a strong answer gives the siblings a small boost (+0.2 α), because someone strong on Renaissance painting is probably decent on the Reformation.
-- There's also an optional **self-rating** screen first: a quick 1 to 5 slider per root domain, used as weak priors.
-- The quiz can be rerun later as a "recalibrate" option.
+- There's **no self-rating** screen, so the calibration isn't biased by self-assessment. (Earlier versions had one; their `rating` events still replay.)
+- The quiz can be rerun later as a "recalibrate" option. Each run is a new round of up to 20 questions, and its difficulty carries on from the earlier answers.
 
 ---
 
@@ -241,7 +242,7 @@ A single page, mobile-friendly first: I'll use it from my iPhone as much as from
   - an audio player with synced word highlighting (port this from Read Along)
 - **Feedback row:** Deeper · Simpler · Knew that · Lost me. Each button is at least 44 px tall and acknowledged with a subtle state change.
 - **Next steps:** two or three chips under the card. Tapping one runs a recall on it.
-- **First run:** the quiz flow (self-rating, then questions with a progress bar and a "stop and start using Mnemo" link).
+- **First run:** the quiz flow (questions with a progress bar, an "I don't know" link and a "stop and start using Mnemo" link).
 - **A debug drawer** (hidden behind `?debug=1`): the tag distribution, the profile JSON sent to the model, and the mastery deltas applied.
 
 ### Brand
@@ -268,7 +269,7 @@ Build them in this order, and each one should be usable on its own:
 2. **Taxonomy + tagging:** the seed tree, embeddings, top-down descent, the LLM judge, the breadcrumb in the UI, and the debug drawer.
 3. **Mastery + feedback:** the Beta cells, decay, aggregation, the four buttons, the profile context in the prompt, and lost-me diagnosis.
 4. **Audio:** the ear-written script, ElevenLabs timestamps, caching, the three modes, and synced highlighting.
-5. **Onboarding quiz:** self-rating, adaptive items, and grading.
+5. **Onboarding quiz:** adaptive items and grading.
 6. **Next steps + lazy refinement:** frontier suggestions and on-demand child creation.
 
 ---

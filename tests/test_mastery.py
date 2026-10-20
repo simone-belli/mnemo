@@ -133,3 +133,16 @@ def test_quiz_delta_scaled_by_difficulty():
     assert easy_wrong[1] > hard_wrong[1]
     a, b = M.quiz_delta(0.5, 0.5)
     assert a == b == 0.5
+
+
+def test_staircase_follows_answers_and_carries_over_to_new_domains():
+    step = dict(start=0.25, up=0.1, down=0.15)
+    assert M.staircase([], **step) == (0.25, {})
+    overall, levels = M.staircase([(1, 1.0), (1, 1.0), (1, 1.0)], **step)
+    assert levels[1] == pytest.approx(0.55) and overall == pytest.approx(0.55)
+    overall, levels = M.staircase([(1, 1.0), (1, 1.0), (1, 1.0), (2, 0.0)], **step)
+    assert levels[2] == pytest.approx(0.40) and levels[1] == pytest.approx(0.55)   # 2 starts where 1 got to
+    _, levels = M.staircase([(1, 0.5)], **step)
+    assert levels[1] == pytest.approx(0.225)                         # partial credit: a small step down
+    _, levels = M.staircase([(1, 0.0)] * 10, **step)
+    assert levels[1] == 0.05                                          # never below the floor

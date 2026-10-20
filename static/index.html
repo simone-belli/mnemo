@@ -50,18 +50,9 @@
 
     <p id="status" class="status" role="status" aria-live="polite"></p>
 
-    <!-- First run: self-rating, then the adaptive quiz -->
+    <!-- First run and Recalibrate: the adaptive quiz -->
     <section id="onboarding" class="card" hidden>
-      <div id="rate-step">
-        <h2>Where do you stand?</h2>
-        <p class="muted">A quick, rough self-rating per domain. It only sets weak starting points; the quiz and every recap refine them.</p>
-        <div id="ratings"></div>
-        <div class="row">
-          <button type="button" id="rate-go" class="primary">Continue to the quiz</button>
-          <button type="button" id="rate-skip" class="link">Skip</button>
-        </div>
-      </div>
-      <div id="quiz-step" hidden>
+      <div id="quiz-step">
         <div class="progress"><div id="quiz-bar"></div></div>
         <p class="crumbs" id="quiz-topic"></p>
         <h2 id="quiz-q"></h2>

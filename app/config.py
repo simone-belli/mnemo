@@ -77,6 +77,11 @@ class Settings:
 
     # Quiz (SPEC §7)
     quiz_target: int = field(default_factory=lambda: int(_f("QUIZ_TARGET", 20)))
+    # Adaptive difficulty (0 = any educated adult, 1 = specialist): start easy, step up on a right
+    # answer and down on a wrong one, settling where about 60% of answers are right.
+    quiz_start_difficulty: float = field(default_factory=lambda: _f("QUIZ_START_DIFFICULTY", 0.25))
+    quiz_step_up: float = field(default_factory=lambda: _f("QUIZ_STEP_UP", 0.1))
+    quiz_step_down: float = field(default_factory=lambda: _f("QUIZ_STEP_DOWN", 0.15))
 
     weights: Weights = field(default_factory=Weights)
 

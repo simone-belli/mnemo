@@ -1,5 +1,5 @@
 """Onboarding quiz (SPEC §7): pick the most informative cell, have the fast model write a
-question for it, grade the answer, update the map."""
+question for it at an adaptive difficulty, grade the answer, update the map."""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,7 @@ import math
 import random
 from datetime import datetime
 
-from . import db, knowledge, taxonomy
+from . import db, knowledge, mastery, taxonomy
 from .config import MODES, Settings
 from .llm import obj
 
@@ -21,7 +21,7 @@ def descendants(children: dict, node_id: int) -> int:
 
 
 def select_cell(conn, settings: Settings, llm, embedder, now: datetime, rng: random.Random | None = None
-                ) -> tuple[int, str, float]:
+                ) -> tuple[int, str]:
     """The (node, mode) with the highest Beta variance, weighted by node breadth.
 
     Starts at the second level of the tree; a node whose answers are strong opens its children
@@ -54,19 +54,28 @@ def select_cell(conn, settings: Settings, llm, embedder, now: datetime, rng: ran
                      * (1 + 0.1 * rng.random()))
             if score > best_score:
                 best, best_score = (nid, mode), score
-    nid, mode = best
-    # Pitch the item a little above the current estimate (the parent's, while this cell has no evidence).
-    mean_, ev = view.mode(nid, mode)
-    if ev < 0.5:
-        parent = db.get_node(conn, nid)["parent_id"]
-        mean_ = view.mode(parent, mode)[0] if parent else mean_
-    return nid, mode, round(min(0.9, max(0.2, mean_ + 0.1)), 2)
+    return best
 
 
-ITEM_SYSTEM = """You write one quiz question that measures how well a person knows a topic, in a
-given mode of knowing. The person is a theoretical physicist turned quant researcher with
-broad interests. Difficulty runs from 0 (any educated adult) to 1 (expert in the field).
-Write the question so that a correct answer genuinely shows that level of knowledge."""
+def difficulty(conn, settings: Settings, node_id: int) -> float:
+    """The staircase level of the node's root domain, from every answer so far (SPEC §7)."""
+    answers = [(db.path(conn, r["node_id"])[0]["id"], r["score"])
+               for r in conn.execute("SELECT node_id, score FROM quiz_items WHERE score IS NOT NULL ORDER BY ts, id")]
+    overall, levels = mastery.staircase(answers, settings.quiz_start_difficulty, settings.quiz_step_up,
+                                        settings.quiz_step_down)
+    return round(levels.get(db.path(conn, node_id)[0]["id"], overall), 2)
+
+
+ITEM_SYSTEM = """You write one quiz question that measures whether someone knows a topic, in a
+given mode of knowing, at a given difficulty. Difficulty is absolute, not relative to anyone:
+- 0.0–0.2: general knowledge most adults have ("Who painted the Mona Lisa?")
+- 0.3–0.4: what a curious, well-read person knows; a good secondary-school level
+- 0.5–0.6: an introductory university course or a good popular-science book
+- 0.7–0.8: someone who studied the subject or follows it seriously
+- 0.9–1.0: a specialist in the field
+Ask about one central idea, fact or skill at exactly that level. Avoid trick questions and
+obscure details (exact dates, numbers, minor names) unless the difficulty is high. Keep the
+question short. Wrong options must be plausible but clearly wrong to someone at that level."""
 
 ITEM_SCHEMA = obj({
     "question": {"type": "string"},
@@ -109,9 +118,22 @@ def generate_item(conn, settings: Settings, llm, node_id: int, mode: str, diffic
     return cur.lastrowid
 
 
+def start_round(conn) -> None:
+    """A new quiz (first run or Recalibrate): progress counts from here."""
+    discard_pending(conn)
+    last = conn.execute("SELECT max(id) FROM quiz_items").fetchone()[0] or 0
+    db.set_meta(conn, "quiz_round_start", str(last))
+    conn.commit()
+
+
+def round_answered(conn) -> int:
+    start = int(db.get_meta(conn, "quiz_round_start") or 0)
+    return conn.execute("SELECT count(*) FROM quiz_items WHERE score IS NOT NULL AND id > ?", (start,)).fetchone()[0]
+
+
 def item_payload(conn, item_id: int, target: int) -> dict:
     r = conn.execute("SELECT * FROM quiz_items WHERE id=?", (item_id,)).fetchone()
-    answered = conn.execute("SELECT count(*) FROM quiz_items WHERE score IS NOT NULL").fetchone()[0]
+    answered = round_answered(conn)
     return {"item_id": r["id"], "question": r["question"],
             "options": json.loads(r["options"]) if r["options"] else None,
             "topic": [n["name"] for n in db.path(conn, r["node_id"])], "mode": r["mode"],
@@ -129,9 +151,9 @@ def next_item(conn, settings: Settings, llm, embedder, now: datetime) -> dict:
     pending = conn.execute("SELECT id FROM quiz_items WHERE score IS NULL ORDER BY id DESC LIMIT 1").fetchone()
     if pending:
         return item_payload(conn, pending["id"], settings.quiz_target)
-    answered = conn.execute("SELECT count(*) FROM quiz_items WHERE score IS NOT NULL").fetchone()[0]
-    node_id, mode, difficulty = select_cell(conn, settings, llm, embedder, now)
-    item_id = generate_item(conn, settings, llm, node_id, mode, difficulty, multiple_choice=answered % 3 != 2)
+    node_id, mode = select_cell(conn, settings, llm, embedder, now)
+    item_id = generate_item(conn, settings, llm, node_id, mode, difficulty(conn, settings, node_id),
+                            multiple_choice=round_answered(conn) % 3 != 2)
     return item_payload(conn, item_id, settings.quiz_target)
 
 
@@ -174,16 +196,3 @@ def answer(conn, settings: Settings, llm, item_id: int, user_answer: str, now: d
     db.log_interaction(conn, deltas=deltas, **ev)
     conn.commit()
     return {"score": score, "rationale": rationale, "correct": correct, "deltas": deltas}
-
-
-def rate(conn, settings: Settings, ratings: dict[str, int], now: datetime) -> list[dict]:
-    """Self-ratings (1–5) per root domain, as weak priors on the root cells."""
-    roots = {n["name"]: n["id"] for n in db.children(conn, None)}
-    by_id = {str(roots[name]): int(v) for name, v in ratings.items() if name in roots}
-    ev = {"kind": "rating", "node_id": None, "mode": None, "diagnosis": json.dumps({"ratings": by_id}),
-          "ts": knowledge.iso(now)}
-    deltas = knowledge.apply_event(conn, settings, ev, now)
-    db.log_interaction(conn, deltas=deltas, **ev)
-    conn.commit()
-    return deltas
-

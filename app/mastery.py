@@ -159,6 +159,22 @@ def rank_frontier(candidates: Iterable[dict], k: int = 3) -> list[dict]:
 
 # ---------------------------------------------------------------- feedback
 
+def staircase(answers: Iterable[tuple[int, float]], start: float, up: float, down: float,
+              lo: float = 0.05, hi: float = 0.95) -> tuple[float, dict[int, float]]:
+    """Quiz difficulty from the (domain, score) answers so far, in order -> (overall, per domain).
+
+    A right answer raises the level by `up`, a wrong one lowers it by `down`, a partial score
+    moves it in between. A domain starts at the overall level the first time it comes up, so
+    doing well in one domain makes the next one start higher. With up < down the levels settle
+    where about down / (up + down) of the answers are right (60% for 0.1 and 0.15)."""
+    overall, levels = start, {}
+    for domain, score in answers:
+        step = up * score - down * (1 - score)
+        levels[domain] = min(hi, max(lo, levels.get(domain, overall) + step))
+        overall = min(hi, max(lo, overall + step))
+    return overall, levels
+
+
 def quiz_delta(score: float, difficulty: float) -> tuple[float, float]:
     """alpha += score, beta += 1 - score, scaled by difficulty: a hard item answered well counts
     for more, and so does an easy one answered badly."""

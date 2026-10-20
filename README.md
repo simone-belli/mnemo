@@ -33,7 +33,7 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
   - Replaying a recap with ↻, or saying "repeat", counts as a mild "too hard" signal.
   - While a recap is on screen, the same words work as voice commands.
 - **Next** chips are topics just past the edge of what you know. Tap one to recall it.
-- **Recalibrate** (in the footer) runs the onboarding again: a self-rating per domain, then an adaptive quiz you can stop at any time.
+- **The quiz** runs on first use, and again whenever you press **Recalibrate** in the footer. It starts easy and adapts to your answers in each domain, and you can stop it at any time. There is no self-rating, to keep self-assessment bias out of the map.
   - *I don’t know* under a question shows the answer and counts as a wrong answer, which is better than guessing.
 - **Theme** (in the footer) switches between *auto* (follows the system's light or dark setting), *light* and *dark*.
 
@@ -44,20 +44,20 @@ Open http://localhost:8000. To use it from an iPhone on the same network, open `
 | `app/main.py` | Routes (SPEC §9) and the recall flow: tag → profile → recap (with next steps in parallel) → audio script → TTS |
 | `app/config.py` | All settings and feedback weights, read from `.env` |
 | `app/db.py` | SQLite schema (SPEC §8, plus `ref_id`/`deltas` on interactions and a `meta` table) and queries |
-| `app/mastery.py` | Pure maths: Beta cells, decay, upward aggregation, child priors, frontier, quiz deltas |
+| `app/mastery.py` | Pure maths: Beta cells, decay, upward aggregation, child priors, frontier, quiz deltas, the difficulty staircase |
 | `app/knowledge.py` | The map in the database: effective mastery, events → deltas, profile, frontier, **replay** |
 | `app/taxonomy.py` | Seeding, embeddings, lazy refinement (the LLM proposes children of a node) |
 | `app/tagging.py` | Top-down descent, LLM judge (node, mode, "more specific?"), refinement, session smoothing |
 | `app/recap.py` | Recap and audio-script prompts |
 | `app/feedback.py` | The four buttons and the *Lost me* diagnosis |
-| `app/quiz.py` | Self-rating, item selection by Beta variance × breadth, generation and grading |
+| `app/quiz.py` | Item selection by Beta variance × breadth, adaptive difficulty, generation and grading |
 | `app/tts.py` | ElevenLabs `with-timestamps`, cached in `data/audio/` by content hash |
 | `app/embed.py` | Embedding interface: sentence-transformers, or a dependency-free hash embedder |
 | `app/llm.py` | Thin Anthropic wrapper: text, schema-constrained JSON, retries |
 | `app/fakes.py` | Offline Claude and ElevenLabs for `MNEMO_FAKE=1` and the tests; `fake_quiz.json` is its question bank |
 | `static/` | `index.html`, `app.js`, `style.css`, `logo/` |
 
-Every change to the map is an event in `interactions`. Self-ratings, quiz answers and feedback are all stored there, alongside the creation time of each lazily created node. `POST /api/replay` rebuilds `mastery` and `preferences` from those events using the current weights in `config.py`, so the weights can be retuned after the fact.
+Every change to the map is an event in `interactions`. Quiz answers and feedback are all stored there, alongside the creation time of each lazily created node. `POST /api/replay` rebuilds `mastery` and `preferences` from those events using the current weights in `config.py`, so the weights can be retuned after the fact.
 
 ## Tests
 
@@ -67,7 +67,7 @@ cd tests && npm install && cd ..      # local copies of marked and KaTeX for the
 poetry run pytest tests
 ```
 
-- `test_mastery.py` covers the update rules, decay, aggregation, priors and frontier ranking.
+- `test_mastery.py` covers the update rules, decay, aggregation, priors, frontier ranking and the difficulty staircase.
 - `test_flow.py` runs the acceptance criteria through the API, using fake Claude and ElevenLabs:
   - after two "knew that", the next recap is more advanced
   - after "lost me", the next recap leads with the prerequisite
