@@ -35,6 +35,7 @@ class Weights:
     lost_prereq: float = 1.0    # beta, on the missing prerequisite's node
     lost_gap: float = 0.5       # beta, on the recap's own cell, only for a genuine gap
     repeat: float = 0.25        # beta
+    explain: float = 0.25       # beta: asking for an explanation suggests it isn't fully known
     depth_nudge: float = 0.25   # deeper/simpler move the branch's depth preference by this
     sibling_spread: float = 0.2  # alpha for siblings after a strong quiz answer
     rating_prior: float = 2.0   # pseudo-counts for a self-rating

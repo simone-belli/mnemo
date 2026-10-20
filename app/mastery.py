@@ -157,6 +157,21 @@ def rank_frontier(candidates: Iterable[dict], k: int = 3) -> list[dict]:
     return sorted(scored, key=lambda c: -c["score"])[:k]
 
 
+# ---------------------------------------------------------------- levels (SPEC §5)
+
+LEVELS = ("first contact", "introductory", "intermediate", "advanced", "expert")
+
+
+def level(mean: float) -> int:
+    """The level a recall is pitched at, from the cell's mastery: bands of 0.2."""
+    return min(len(LEVELS) - 1, max(0, int(mean * 5 + 1e-9)))
+
+
+def explain_level(recall_level: int) -> int:
+    """An explanation is pitched one level simpler than a recall."""
+    return max(0, recall_level - 1)
+
+
 # ---------------------------------------------------------------- feedback
 
 def staircase(answers: Iterable[tuple[int, float]], start: float, up: float, down: float,

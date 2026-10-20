@@ -6,6 +6,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -60,6 +61,7 @@ class RecallIn(BaseModel):
     session_id: str | None = None
     node_id: int | None = None       # set when a next-step chip is tapped
     audio: bool = True               # False in Read mode: skip the script and TTS until asked
+    intent: Literal["recall", "explain"] = "recall"   # explain: one level simpler, to understand
 
 
 class AudioIn(BaseModel):
@@ -149,16 +151,18 @@ def create_app(svc: Services | None = None) -> FastAPI:
                 conn.commit()
                 prof = knowledge.profile(conn, s, tag.node_id, tag.mode, now)
                 f_steps = pool.submit(next_steps, tag.node_id, tag.query_vec, now)
-                system, text_md = recap.write_recap(svc.llm, s, query, prof)
+                system, text_md = recap.write_recap(svc.llm, s, query, prof, body.intent)
             except LLMError as e:
                 fail(e)
-            ev = {"kind": "recall", "query": query, "node_id": tag.node_id, "mode": tag.mode,
+            level = recap.target_level(prof, body.intent)
+            ev = {"kind": body.intent, "query": query, "node_id": tag.node_id, "mode": tag.mode,
                   "tag_dist": tag.dist, "response_md": text_md, "ts": knowledge.iso(now)}
             deltas = knowledge.apply_event(conn, s, ev, now)
-            iid = db.log_interaction(conn, **ev)
+            iid = db.log_interaction(conn, deltas=deltas, **ev)
             conn.commit()
             out = {"interaction_id": iid, "text_md": text_md, "audio_script": None, "audio_url": None,
-                   "timings": None, "node_id": tag.node_id, "node_path": tag.path, "mode": tag.mode}
+                   "timings": None, "node_id": tag.node_id, "node_path": tag.path, "mode": tag.mode,
+                   "intent": body.intent, "level": level}
             if body.audio:
                 try:
                     out |= make_audio(conn, iid, text_md)
@@ -170,15 +174,15 @@ def create_app(svc: Services | None = None) -> FastAPI:
                 log.warning("next steps failed", exc_info=True)
                 out["next_steps"] = []
             out["debug"] = {"tag_dist": tag.dist, "tagging": tag.debug, "created_nodes": tag.created,
-                            "profile": prof, "system_prompt": system,
-                            "user_prompt": recap.recap_prompt(s, query, prof), "deltas": deltas}
+                            "profile": prof, "intent": body.intent, "level": level, "system_prompt": system,
+                            "user_prompt": recap.recap_prompt(s, query, prof, body.intent), "deltas": deltas}
             return out
 
     @app.post("/api/audio")
     def audio_for(body: AudioIn):
         with svc.db() as conn:
             rec = db.get_interaction(conn, body.interaction_id)
-            if rec is None or rec["kind"] != "recall":
+            if rec is None or rec["kind"] not in ("recall", "explain"):
                 raise HTTPException(404, "no such recall")
             try:
                 return make_audio(conn, rec["id"], rec["response_md"])
@@ -238,7 +242,7 @@ def create_app(svc: Services | None = None) -> FastAPI:
     def state():
         with svc.db() as conn:
             count = lambda sql: conn.execute(sql).fetchone()[0]  # noqa: E731
-            return {"recalls": count("SELECT count(*) FROM interactions WHERE kind='recall'"),
+            return {"recalls": count("SELECT count(*) FROM interactions WHERE kind IN ('recall', 'explain')"),
                     "quiz_answered": count("SELECT count(*) FROM quiz_items WHERE score IS NOT NULL"),
                     "quiz_target": s.quiz_target, "tts": svc.tts.name if svc.tts.available else None}
 

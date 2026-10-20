@@ -8,6 +8,10 @@ from app.fakes import QUIZ_BANK
 from app.main import create_app
 
 
+def explain(client, query, **kw):
+    return recall(client, query, intent="explain", **kw)
+
+
 def recall(client, query, **kw):
     r = client.post("/api/recall", json={"query": query, "session_id": "t", **kw})
     assert r.status_code == 200, r.text
@@ -129,6 +133,27 @@ def test_vague_query_shallow_specific_query_deep(svc, client):
         assert a + b == pytest.approx(2.0)
 
 
+def test_explain_is_one_level_simpler_and_a_mild_signal(svc, client):
+    q = "remind me about statistical mechanics"
+    r = recall(client, q)
+    assert r["intent"] == "recall" and r["level"] == "intermediate" and "Level: intermediate" in r["text_md"]
+    e = explain(client, q)
+    assert e["node_id"] == r["node_id"] and e["intent"] == "explain"
+    assert e["level"] == "introductory" and "Level: introductory" in e["text_md"]
+    assert "An explanation of" in e["text_md"]
+    assert e["debug"]["system_prompt"] != r["debug"]["system_prompt"]
+    assert "Pitch: introductory:" in e["debug"]["user_prompt"]
+    assert e["debug"]["deltas"][0]["d_beta"] == 0.25                  # asking to explain: a mild "less known"
+    with svc.db() as conn:
+        assert db.get_interaction(conn, e["interaction_id"])["kind"] == "explain"
+    # An explanation takes feedback and audio like a recap.
+    fb = client.post("/api/feedback", json={"interaction_id": e["interaction_id"], "signal": "knew_that"})
+    assert fb.status_code == 200 and fb.json()["deltas"][0]["d_alpha"] == 1.0
+    assert client.post("/api/audio", json={"interaction_id": e["interaction_id"]}).json()["audio_url"]
+    assert client.get("/api/state").json()["recalls"] == 2
+    assert client.post("/api/recall", json={"query": q, "intent": "summarise"}).status_code == 422
+
+
 def test_next_steps_follow_the_frontier(svc, client):
     legacy_rating(svc, {"nature": 5})
     nature = node_by_name(svc, "nature")
@@ -228,6 +253,7 @@ def test_map_rebuilds_from_interactions(svc, client):
     r = recall(client, "remind me about statistical mechanics")
     for signal in ("knew_that", "deeper", "repeat", "simpler"):
         client.post("/api/feedback", json={"interaction_id": r["interaction_id"], "signal": signal})
+    explain(client, "remind me about statistical mechanics")
     r2 = recall(client, "Brunelleschi's perspective experiment")
     client.post("/api/feedback", json={"interaction_id": r2["interaction_id"], "signal": "lost_me", "note": "vanishing point"})
     item = client.get("/api/quiz/next").json()

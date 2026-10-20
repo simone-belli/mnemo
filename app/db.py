@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS mastery(
 
 CREATE TABLE IF NOT EXISTS interactions(
   id INTEGER PRIMARY KEY, ts TEXT NOT NULL,
-  kind TEXT NOT NULL,                       -- recall | feedback | quiz | rating
+  kind TEXT NOT NULL,                       -- recall | explain | feedback | quiz | rating (legacy)
   query TEXT, node_id INTEGER, mode TEXT,
   tag_dist TEXT,                            -- JSON
   response_md TEXT, audio_script TEXT, audio_path TEXT,

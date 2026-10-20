@@ -41,11 +41,12 @@
 
   <main>
     <form id="ask" autocomplete="off">
-      <input id="q" type="text" placeholder="Remind me about…" aria-label="Remind me about" enterkeyhint="go">
+      <input id="q" type="text" placeholder="Recall or explain…" aria-label="Topic to recall or explain" enterkeyhint="go">
       <button id="mic" type="button" class="icon" aria-label="Speak" title="Speak">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15zm6-3.5a6 6 0 0 1-12 0H4.5a7.5 7.5 0 0 0 6.75 7.46V21h1.5v-2.04a7.5 7.5 0 0 0 6.75-7.46z"/></svg>
       </button>
-      <button id="go" type="submit" class="primary">Recall</button>
+      <button id="go" type="submit" class="primary" title="A reminder at your level">Recall</button>
+      <button id="explain" type="button" class="secondary" title="An explanation, one level simpler">Explain</button>
     </form>
 
     <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -119,7 +120,7 @@
       <button type="button" id="recalibrate" class="link">Recalibrate</button>
       <button type="button" id="theme" class="link" title="Light, dark, or follow the system">Theme: auto</button>
     </div>
-    <span class="muted">Remember what you know.</span>
+    <span class="muted">Recall what you know, understand what’s next.</span>
   </footer>
 </body>
 </html>
