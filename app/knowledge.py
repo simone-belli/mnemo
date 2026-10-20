@@ -108,11 +108,14 @@ def nudge_depth(conn, node_id: int, delta: float) -> float:
 def deltas_for(conn, ev: dict, w: Weights) -> tuple[list[tuple[int, str, float, float]], float]:
     """Mastery changes (node, mode, d_alpha, d_beta) and a depth-preference nudge for one event.
 
-    `ev` is an interactions row as a dict. Recalls change nothing but `last_seen`."""
+    `ev` is an interactions row as a dict. Recalls change nothing but `last_seen`; asking for an
+    explanation is a mild "less known" signal."""
     kind, node, mode = ev["kind"], ev["node_id"], ev["mode"]
     diag = json.loads(ev["diagnosis"]) if ev.get("diagnosis") else {}
     if kind == "recall":
         return [(node, mode, 0.0, 0.0)], 0.0
+    if kind == "explain":
+        return [(node, mode, 0.0, w.explain)], 0.0
     if kind == "feedback":
         signal = ev["feedback"]
         if signal == "knew_that":

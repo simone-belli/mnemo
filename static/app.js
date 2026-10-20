@@ -1,6 +1,6 @@
 // Mnemo front end. Plain script, no build step.
 // Sections: 1. helpers · 2. Markdown + maths · 3. modes · 4. recall · 5. audio and highlighting
-//           6. feedback · 7. next steps · 8. voice input · 9. onboarding quiz · 10. debug · 11. theme
+//           (and explain) · 6. feedback · 7. next steps · 8. voice input · 9. onboarding quiz · 10. debug · 11. theme
 //           12. start-up
 (() => {
   'use strict';
@@ -89,35 +89,36 @@
   }));
 
   // ======================================================================
-  // 4. Recall
+  // 4. Recall and explain: the same flow; an explanation is pitched one level simpler
   // ======================================================================
   let current = null;          // the recap on screen (the /api/recall payload)
   let busy = false;
 
-  async function recall(query, nodeId = null) {
+  async function recall(query, nodeId = null, intent = 'recall') {
     if (busy || !query.trim()) return;
     busy = true;
-    $('go').disabled = true;
+    $('go').disabled = $('explain').disabled = true;
     stopAudio();
-    status('Recalling…', { timer: true });
+    status(intent === 'explain' ? 'Explaining…' : 'Recalling…', { timer: true });
     try {
-      const r = await api('/api/recall', { query, session_id: SESSION, node_id: nodeId, audio: mode !== 'read' });
+      const r = await api('/api/recall', { query, session_id: SESSION, node_id: nodeId, audio: mode !== 'read', intent });
       current = r;
       showRecap(r);
       status(r.audio_error && mode !== 'read' ? r.audio_error : '');
       if (mode !== 'read') startAudio(true);
     } catch (e) {
-      status('Could not recall: ' + e.message, { error: true });
+      status(`Could not ${intent}: ` + e.message, { error: true });
     } finally {
       busy = false;
-      $('go').disabled = false;
+      $('go').disabled = $('explain').disabled = false;
     }
   }
 
   function showRecap(r) {
     $('onboarding').hidden = true;
     const crumbs = r.node_path.map((n) => `<span>${esc(n)}</span>`).join('<span class="sep">›</span>');
-    $('crumbs').innerHTML = `${crumbs} <span class="chip">${esc(r.mode)}</span>`;
+    $('crumbs').innerHTML = `${crumbs} <span class="chip">${esc(r.mode)}</span>`
+      + ` <span class="chip intent">${esc(r.intent)} · ${esc(r.level)}</span>`;
     $('recap').innerHTML = renderMarkdown(r.text_md);
     $('written').open = mode === 'read';
     buildScript(r.audio_script || '');
@@ -134,6 +135,10 @@
     e.preventDefault();
     unlockAudio();
     recall($('q').value);
+  });
+  $('explain').addEventListener('click', () => {
+    unlockAudio();
+    recall($('q').value, null, 'explain');
   });
 
   // ======================================================================
@@ -367,7 +372,7 @@
   });
 
   // ======================================================================
-  // 7. Next steps: tapping a chip runs a recall on it
+  // 7. Next steps: topics past the edge, so tapping a chip explains it
   // ======================================================================
   function showNext(steps) {
     const box = $('chips');
@@ -380,7 +385,7 @@
       b.addEventListener('click', () => {
         unlockAudio();
         $('q').value = s.name;
-        recall(`${s.name} (${s.path.join(' › ')})`, s.node_id);
+        recall(`${s.name} (${s.path.join(' › ')})`, s.node_id, 'explain');
         scrollTo({ top: 0, behavior: 'smooth' });
       });
       box.appendChild(b);
@@ -431,7 +436,7 @@
         return;
       }
     }
-    recall(text);
+    recall(text, null, /^(please )?(explain|what (is|are))\b/i.test(text) ? 'explain' : 'recall');
   }
 
   // ======================================================================

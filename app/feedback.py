@@ -10,8 +10,8 @@ from .llm import obj
 
 SIGNALS = ("knew_that", "deeper", "simpler", "lost_me", "repeat")
 
-DIAGNOSE_SYSTEM = """A person was reading a short recap and said "lost me". Work out why, from the
-recap, her question and her optional note:
+DIAGNOSE_SYSTEM = """A person was reading a short recap or explanation and said "lost me". Work out
+why, from the text, her question and her optional note:
 - missed_word: she just missed or misheard something; nothing is missing from what she knows.
 - unfamiliar_term: one term she doesn't know; the rest was fine. Give the term.
 - missing_prerequisite: the recap relies on a concept or result she hasn't got; give it as a
@@ -35,7 +35,7 @@ def diagnose(llm, settings: Settings, recall_row, note: str | None) -> dict:
 def handle(conn, settings: Settings, llm, tagger, interaction_id: int, signal: str, note: str | None,
            now: datetime) -> dict:
     rec = db.get_interaction(conn, interaction_id)
-    if rec is None or rec["kind"] != "recall":
+    if rec is None or rec["kind"] not in ("recall", "explain"):
         raise KeyError(interaction_id)
     if signal not in SIGNALS:
         raise ValueError(f"unknown signal {signal!r}")

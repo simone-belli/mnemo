@@ -135,6 +135,13 @@ def test_quiz_delta_scaled_by_difficulty():
     assert a == b == 0.5
 
 
+def test_levels_and_explain_one_simpler():
+    assert [M.LEVELS[M.level(m)] for m in (0.0, 0.19, 0.2, 0.5, 0.6, 0.79, 0.8, 1.0)] == [
+        "first contact", "first contact", "introductory", "intermediate", "advanced", "advanced", "expert", "expert"]
+    assert M.explain_level(M.level(0.5)) == M.level(0.5) - 1
+    assert M.explain_level(0) == 0                                    # nothing simpler than first contact
+
+
 def test_staircase_follows_answers_and_carries_over_to_new_domains():
     step = dict(start=0.25, up=0.1, down=0.15)
     assert M.staircase([], **step) == (0.25, {})

@@ -1,8 +1,8 @@
 # Mnemo: version zero spec
 
-> *Remember what you know.*
+> *Recall what you know, understand what's next.*
 
-Mnemo is a personal "external hard drive" for what I know. I ask it things like "remind me about Renaissance painting". Within 10 to 20 seconds it gives me a short recap pitched exactly at my level. It reads the recap aloud while highlighting the text, and it suggests where to go next. Behind the scenes it keeps a calibrated map of my knowledge, and every interaction updates that map.
+Mnemo is a personal "external hard drive" for what I know, and a tutor for what's next. I ask it to **recall** a topic ("Renaissance painting") and within 10 to 20 seconds it gives me a short recap pitched exactly at my level. Or I ask it to **explain** a topic and get an explanation one level simpler, built to make me understand it rather than to jog my memory. Either way, it reads the answer aloud while highlighting the text, and it suggests where to go next. Behind the scenes it keeps a calibrated map of my knowledge, and every interaction updates that map.
 
 This is a personal tool for one user (me), not a product. Keep the code simple, readable and hackable. Prefer clarity over cleverness.
 
@@ -13,6 +13,7 @@ This is a personal tool for one user (me), not a product. Keep the code simple, 
 ### In v0
 - A single-page web app, served locally.
 - **Recall:** "remind me about X" returns a level-calibrated recap as text (Markdown + LaTeX) and as audio, with synced highlighting.
+- **Explain:** the same flow, but the answer is an explanation pitched one level simpler than a recall (§5).
 - **Knowledge map:** a hierarchical topic tree, crossed with five modes of knowing. Each cell holds a mastery estimate that has uncertainty and decays over time.
 - **Tagging:** every query is mapped onto the tree, at the right depth and mode.
 - **Feedback loop:** four buttons that update the map: *deeper*, *simpler*, *knew that*, *lost me*.
@@ -123,52 +124,52 @@ Output: a distribution over `(node_id, mode)` with confidences, plus the chosen 
 
 ---
 
-## 5. Recall flow (`recap.py`)
+## 5. Recall and explain flow (`recap.py`)
 
-1. `POST /api/recall {query}` → tag (§4).
+Recall and Explain share one flow; only the target level and the prompt's intent differ.
+
+1. `POST /api/recall {query, intent}` (`intent` is `recall`, the default, or `explain`) → tag (§4).
 2. **Build the profile context** for the primary node:
    - the node's own mastery per mode, and its uncertainty
    - the parent's and siblings' mastery (what I know around it)
    - its children (what's below it), with mastery
    - recent "lost me" events on this branch, with the diagnosed gaps
    - my depth preference for this branch (from *deeper* and *simpler* feedback)
-3. **Generate the text recap** (recap model). Default length is 120 to 180 words. Use Markdown, and LaTeX where it helps (I'm a physicist, so formulas are welcome, not scary). Pitch it one step past my edge: compress what I already know into a line, then spend most of the words on the next layer.
+3. **Generate the text** (recap model) at the target level (below). Default length is 120 to 180 words. Use Markdown, and LaTeX where it helps (I'm a physicist, so formulas are welcome, not scary). A recall is pitched one step past my edge: compress what I already know into a line, then spend most of the words on the next layer. An explanation is pitched one level simpler and builds the idea up.
 4. **Generate the audio script** with a *separate* call. It's the same content written for the ear: short sentences, verbal signposting, formulas described in words, and no Markdown.
 5. **TTS** on the audio script, using ElevenLabs with timestamps. Cache the audio by content hash in `data/audio/`.
-6. Return `{text_md, audio_script, audio_url, timings, node_path, mode, next_steps[]}`.
+6. Return `{text_md, audio_script, audio_url, timings, node_path, mode, intent, level, next_steps[]}`.
 
 **Sync highlighting when text and audio differ:** highlight the audio script in "listen" mode. In "read + listen" mode, show the audio script as the main text, with the formatted text recap collapsible below it. (Simple, and avoids alignment hell. Revisit later.)
 
-### Draft system prompt for the recap
+### Levels
 
-```
-You are Mnemo, a personal memory companion for one person: Simone, a
-theoretical physicist (PhD, statistical physics) turned quant researcher,
-with broad interests in literature, philosophy, art and cooking.
+Both actions pitch at a named level, so that "one level simpler" means something. The level comes from the mastery of the asked (node, mode) cell, in bands of 0.2 (`mastery.level()`):
 
-Your job: remind her what she knows about a topic and push exactly one
-step past her current edge. Be brief, dense and precise. No preamble,
-no "great question", no summary at the end.
+| Mastery | Level | Pitch |
+|---|---|---|
+| < 0.2 | first contact | no background assumed; plain words and one concrete example |
+| 0.2–0.4 | introductory | an educated reader; key terms named and defined |
+| 0.4–0.6 | intermediate | knows the basics; mechanisms and connections |
+| 0.6–0.8 | advanced | has studied it; technical, formulas welcome |
+| ≥ 0.8 | expert | a specialist; subtleties and open questions |
 
-You will receive her knowledge profile for this topic as JSON:
-mastery per mode (0-1) with uncertainty, the surrounding branch, recent
-gaps, and her depth preference.
+**Recall** pitches at the cell's level. **Explain** pitches one level lower (never below *first contact*). The depth preference still nudges both, as before.
 
-Rules:
-- Where mastery is high: compress to one line, as a reminder.
-- Where mastery is low: introduce gently, high-level first, name the
-  key terms.
-- Spend most words on the frontier: the next layer she doesn't yet have.
-- If a recent gap was diagnosed (a missing prerequisite), cover it first.
-- Formulas in LaTeX are welcome when they carry the idea.
-- Target {length} words. Markdown allowed.
-```
+### Prompts
+
+The system prompt (`recap.SYSTEM`) has a shared part (who I am, the profile, gaps first, LaTeX, length) and an intent part (`recap.JOBS`):
+
+- **Recall:** remind me what I know and push exactly one step past my edge. Be brief and dense: compress what I know to a line and spend most words on the frontier.
+- **Explain:** explain it so that I understand it, at the given level. Build it step by step (what it is, then why it works or matters), define each key term the first time it appears, use one concrete example or analogy, and show how the parts I know connect rather than compressing them.
+
+The user prompt carries the query, the intent, the mode hint, `Pitch: <level>: <description>` and the profile JSON.
 
 ---
 
 ## 6. Feedback loop
 
-The UI shows four buttons under every recap (voice commands work too): **Deeper**, **Simpler**, **Knew that**, **Lost me**. Asking for a repeat counts as an implicit signal.
+The UI shows four buttons under every recap and explanation (voice commands work too): **Deeper**, **Simpler**, **Knew that**, **Lost me**. Asking for a repeat counts as an implicit signal.
 
 | Signal | Update |
 |---|---|
@@ -177,7 +178,8 @@ The UI shows four buttons under every recap (voice commands work too): **Deeper*
 | Simpler | `β += 0.5`, and nudge the depth preference down |
 | Lost me | Run a **diagnosis** call (fast model): was it a missed word, an unfamiliar term, or a missing prerequisite? Unfamiliar term → `β += 0.5` on the node for that term (tag it). Missing prerequisite → `β += 1.0` on the prerequisite node (tag it, create it if needed). Only lower the whole subtopic when it's a genuine gap. Log the diagnosis for the profile context. |
 | Repeat request | `β += 0.25` on the primary cell |
-| Simply asked about it | No mastery change. Update `last_seen` only. |
+| Asked to recall it | No mastery change. Update `last_seen` only. |
+| Asked to explain it | `β += 0.25` on the primary cell: a mild sign it isn't fully known |
 
 Weights live in config. Every event is stored in `interactions` so the map can be rebuilt from scratch, and the weights can be tuned later by replaying the history.
 
@@ -203,7 +205,7 @@ nodes(id INTEGER PK, parent_id INTEGER NULL, name TEXT, description TEXT,
       depth INTEGER, embedding BLOB, created_at TEXT, source TEXT)  -- seed|lazy|quiz
 mastery(node_id INTEGER, mode TEXT, alpha REAL, beta REAL, last_seen TEXT,
         PRIMARY KEY(node_id, mode))
-interactions(id INTEGER PK, ts TEXT, kind TEXT,      -- recall|feedback|quiz
+interactions(id INTEGER PK, ts TEXT, kind TEXT,      -- recall|explain|feedback|quiz
              query TEXT, node_id INTEGER, mode TEXT, tag_dist TEXT,  -- JSON
              response_md TEXT, audio_script TEXT, audio_path TEXT,
              feedback TEXT NULL, diagnosis TEXT NULL)               -- JSON
@@ -219,7 +221,7 @@ quiz_items(id INTEGER PK, node_id INTEGER, mode TEXT, difficulty REAL,
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/recall` | `{query}` returns the recap payload (§5) |
+| POST | `/api/recall` | `{query, intent?}` returns the recap or explanation payload (§5) |
 | POST | `/api/feedback` | `{interaction_id, signal, note?}` |
 | GET | `/api/quiz/next` | returns the next item |
 | POST | `/api/quiz/answer` | `{item_id, answer}` returns the score and next item |
@@ -234,14 +236,15 @@ quiz_items(id INTEGER PK, node_id INTEGER, mode TEXT, difficulty REAL,
 A single page, mobile-friendly first: I'll use it from my iPhone as much as from my Mac.
 
 - **Header:** the Mnemo logo (the piazza mark, `static/logo/`) and the wordmark.
-- **Query bar:** a text field with a mic button (Web Speech API). The placeholder is *"Remind me about…"*.
+- **Query bar:** a text field, a mic button (Web Speech API), and two actions: **Recall** (primary; Enter) and **Explain**. On a phone the field takes its own row. The placeholder is *"Recall or explain…"*. Spoken queries starting with "explain" or "what is" explain.
 - **Mode toggle:** Read · Listen · Read + Listen. Remember the last choice in localStorage.
 - **Recap card:**
-  - a breadcrumb showing the tagged path (e.g. *artefacts › art › painting › Renaissance*) with the mode as a small chip
+  - a breadcrumb showing the tagged path (e.g. *artefacts › art › painting › Renaissance*) with the mode as a small chip, and an outlined chip with the intent and level (*explain · introductory*)
   - the rendered Markdown and KaTeX
   - an audio player with synced word highlighting (port this from Read Along)
 - **Feedback row:** Deeper · Simpler · Knew that · Lost me. Each button is at least 44 px tall and acknowledged with a subtle state change.
-- **Next steps:** two or three chips under the card. Tapping one runs a recall on it.
+- **Next steps:** two or three chips under the card. They are past my edge, so tapping one explains it.
+- **Footer:** Recalibrate, the theme switch, and the motto.
 - **First run:** the quiz flow (questions with a progress bar, an "I don't know" link and a "stop and start using Mnemo" link).
 - **A debug drawer** (hidden behind `?debug=1`): the tag distribution, the profile JSON sent to the model, and the mastery deltas applied.
 
@@ -278,6 +281,7 @@ Build them in this order, and each one should be usable on its own:
 
 - I can ask "remind me about Renaissance painting" on my phone and hear and read a recap in under 20 seconds (cold) or under 5 seconds (cached audio).
 - After I say "knew that" twice on a topic, the next recap on it is visibly more advanced: the debug drawer shows the mastery change, and the prompt reflects it.
+- Explaining a topic gives an answer one level simpler than recalling it, and the debug drawer shows both levels.
 - "Lost me" on a recap that relies on an unfamiliar prerequisite logs a diagnosis that names that prerequisite, and the next recap covers it first.
 - A vague query ("tell me about art") tags at a shallow depth. A specific one ("Brunelleschi's perspective experiment") tags deep, creating nodes if needed.
 - `mastery.py` has unit tests for the update rules, decay, aggregation and the frontier ranking.

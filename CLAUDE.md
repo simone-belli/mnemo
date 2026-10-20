@@ -1,6 +1,6 @@
 # Mnemo
 
-A personal memory companion for one user (Simone Belli). You ask "remind me about X" and get back a short recap pitched at your level, as text and as audio with synced word highlighting. A calibrated knowledge map is updated by every interaction. The design is in `SPEC.md`; `README.md` has the file map.
+A personal memory companion and tutor for one user (Simone Belli). You ask to **recall** a topic and get back a short recap pitched at your level, or to **explain** it and get an explanation one level simpler; either comes as text and as audio with synced word highlighting. A calibrated knowledge map is updated by every interaction. The design is in `SPEC.md`; `README.md` has the file map.
 
 ## Ground rules
 

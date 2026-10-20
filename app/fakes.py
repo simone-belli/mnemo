@@ -1,7 +1,7 @@
 """Offline stand-ins for Claude and ElevenLabs (MNEMO_FAKE=1, and the tests).
 
 They answer quickly and deterministically, and they look at the prompt just enough for the
-whole loop to behave sensibly: the fake recap reports the mastery level and leads with a
+whole loop to behave sensibly: the fake recap reports the level it was asked for and leads with a
 diagnosed gap, the fake judge flags proper nouns as "more specific", the quiz asks real
 questions from `fake_quiz.json` and grades free text by its key ideas, and so on.
 """
@@ -50,11 +50,12 @@ class FakeLLM:
         query = re.search(r"Query: (.*)", prompt).group(1)
         profile = json.loads(prompt.split("Knowledge profile:\n", 1)[1])
         mean = profile["node"]["mastery_by_mode"][profile["mode"]]["mean"]
-        level = "advanced" if mean > 0.65 else "introductory" if mean < 0.4 else "intermediate"
+        level = re.search(r"Pitch: (.*?):", prompt).group(1)
+        kind = "An explanation" if "Intent: explain" in prompt else "A recap"
         lines = []
         for gap in profile["recent_gaps"][:1]:
             lines.append(f"**First, {gap['term']}.** This is the piece that was missing last time.")
-        lines.append(f"*Level: {level}* (mastery {mean:.2f}). A recap of **{topic_of(query)}**, "
+        lines.append(f"*Level: {level}* (mastery {mean:.2f}). {kind} of **{topic_of(query)}**, "
                      f"in the {profile['mode']} mode, within {profile['topic']}.")
         lines.append("The central relation is $E = mc^2$, and the next layer is what happens beyond it. "
                      "Each idea builds on the one before. That is the frontier.")

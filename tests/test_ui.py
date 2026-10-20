@@ -99,7 +99,7 @@ def test_recall_renders_and_highlights(page):
     page.fill("#q", "remind me about statistical mechanics")
     page.click("#go")
     page.wait_for_selector("#card:not([hidden])")
-    assert page.locator("#crumbs .chip").count() == 1
+    assert page.locator("#crumbs .chip").count() == 2                  # the mode, and intent · level
     # Markdown and KaTeX rendered in the written recap
     assert page.locator("#recap .katex").count() >= 1
     assert page.locator("#recap em, #recap strong").count() >= 1
@@ -120,6 +120,21 @@ def test_recall_renders_and_highlights(page):
     page.fill("#lost-note", "partition function")
     page.click("#lost button")
     page.wait_for_function("document.querySelector('#fb-result').textContent.includes('partition function')")
+
+
+def test_explain_button_and_chips_explain(page):
+    page.wait_for_selector("#onboarding:not([hidden])")
+    page.click("#quiz-stop")
+    assert "understand what’s next" in page.text_content(".foot")
+    page.fill("#q", "statistical mechanics")
+    page.click("#explain")
+    page.wait_for_selector("#card:not([hidden])")
+    assert page.text_content("#crumbs .chip.intent") == "explain · introductory"
+    page.click("#go")                                                 # the same topic, recalled
+    page.wait_for_function("mnemo.current.intent === 'recall'")
+    assert page.text_content("#crumbs .chip.intent") == "recall · intermediate"
+    page.click("#chips button >> nth=0")
+    page.wait_for_function("mnemo.current.intent === 'explain'")
 
 
 def test_modes_are_remembered(page):
