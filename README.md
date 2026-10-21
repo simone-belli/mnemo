@@ -93,3 +93,7 @@ poetry run pytest tests
 - Tagging thresholds (`TAG_TEMPERATURE`, `TAG_THRESHOLD`) need tuning against the real embedder. Use the debug drawer.
 - `SAY_WHAT_I_KNOW` switches recaps between "You know X, so…" openings and just pitching at the right level.
 - The script for the ear is written by `SCRIPT_MODEL`, which defaults to the fast model to keep recall under 20 seconds. Set it to the recap model for better scripts.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Built by Simone Belli, 2026.

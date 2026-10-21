@@ -3,6 +3,7 @@ name = "mnemo"
 version = "0.1.0"
 description = "A personal memory companion: short recaps pitched at your level, read aloud with word highlighting."
 authors = [{ name = "Simone Belli" }]
+license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

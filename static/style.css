@@ -198,3 +198,4 @@ details#written > summary { cursor: pointer; color: var(--shadow); min-height: 4
 .foot .controls { display: flex; gap: 16px; }
 .foot .controls button { white-space: nowrap; }
 .foot .muted { text-align: right; }
+.foot .credit { display: block; margin-top: 4px; font-size: 14px; }
